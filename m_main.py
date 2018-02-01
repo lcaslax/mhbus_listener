@@ -36,7 +36,9 @@ import time
 import os, sys
 import m_eventsman as EvMan
 import xml.etree.ElementTree as ET
-from cl_log import Log
+import logging
+import logging.handlers
+from logging.config import fileConfig
 from cl_btbus import MyHome
 
 
@@ -65,9 +67,27 @@ def main():
         # Lettura percorso e nome del file di log
         flog = ET.parse(CFGFILENAME).find("log[@file]").attrib['file']
         # Lettura del tipo file di log (D per giornaliero, M per mensile)
-        logtype = ET.parse(CFGFILENAME).find("log[@type]").attrib['type']
+
         # Istanzia log
-        logobj = Log(flog,logtype)
+        logtype = ET.parse(CFGFILENAME).find("log[@type]").attrib['type']
+        logLevelName = ET.parse(CFGFILENAME).find("log[@Level]").attrib['Level']        
+        logger = logging.getLogger()
+        handler = logging.handlers.TimedRotatingFileHandler(flog, when='h', interval=1, backupCount=0)
+        formatter = logging.Formatter('%(asctime)s %(name)-6s %(levelname)-8s %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+        
+        LEVELS = { 'debug':logging.DEBUG,
+            'info':logging.INFO,
+            'warning':logging.WARNING,
+            'error':logging.ERROR,
+            'critical':logging.CRITICAL,
+        }
+        livelloLog = LEVELS.get(logLevelName)
+
+        logger.setLevel(livelloLog)
+        
+        
         # Lettura dei 'CHI' da filtrare.
         iwhofilter = map(int, ET.parse(CFGFILENAME).find("log[@file]").attrib['who_filter'].split(','))
         # Lettura parametri di traduzione del 'CHI'.
@@ -78,7 +98,7 @@ def main():
         # ***********************************************************
         # ** CONNESSIONE AL GATEWAY                                **
         # ***********************************************************
-        logobj.write('mhbus_listener v.' + __version__ + ' started.')
+        logging.warn('mhbus_listener v.' + __version__ + ' started.')
         # Controllo presenza parametri necessari
         if mhgateway_ip and mhgateway_port and flog:
             # Instanziamento classe MyHome
@@ -88,13 +108,13 @@ def main():
             if smon:
                 # Controllo risposta del gateway
                 if mhobj.mh_receive_data(smon) == ACK:
-                    logobj.write('bticino gateway ' + mhgateway_ip + ' connected.')
+                    logging.info('bticino gateway ' + mhgateway_ip + ' connected.')
                     # OK, attivazione modalita' 'MONITOR'
                     mhobj.mh_send_data(smon,MONITOR)
                     # Controllo risposta del gateway
                     if mhobj.mh_receive_data(smon) == ACK:
                         # Modalita' MONITOR attivata.
-                        logobj.write('OK, Ready!')
+                        logging.info('OK, Ready!')
                         # ***********************************************************
                         # ** ASCOLTO BUS...                                        **
                         # ***********************************************************
@@ -124,9 +144,9 @@ def main():
                                                 if who not in iwhofilter:
                                                     # Controlla se e' richiesta la traduzione del 'CHI'
                                                     if strawho == 'Y':
-                                                        logobj.write(msgOpen + ';' + mhobj.mh_get_who_descr(who,strawholang))
+                                                        logging.debug(msgOpen + ';' + mhobj.mh_get_who_descr(who,strawholang))
                                                     else:
-                                                        logobj.write(msgOpen)
+                                                        logging.debug(msgOpen)
                                                     # Gestione voci antifurto
                                                     if who == 5 and msgOpen != '*5*3*##':
                                                         if msgOpen not in afframes:
@@ -137,34 +157,34 @@ def main():
                                                             # Reset lista af
                                                             afframes = []
                                                     # Controllo eventi...
-                                                    EvMan.ControlloEventi(msgOpen, logobj)
+                                                    EvMan.ControlloEventi(msgOpen, logging)
                                 else:
                                     # Frame non riconosciuta!
-                                    logobj.write(msgOpen + ' [STRINGA OPENWEBNET NON RICONOSCIUTA!]')
+                                    logging.warn(msgOpen + ' [STRINGA OPENWEBNET NON RICONOSCIUTA!]')
                             else:
                                 # Non ricevo piu' nulla!
-                                logobj.write(str(frames) + ' - ' + str(smon))
+                                logging.warn(str(frames) + ' - ' + str(smon))
                     else:
                         # KO, non e' stato possibile attivare la modalita' MONITOR, impossibile proseguire.
-                        logobj.write('IL GATEWAY ' + mhgateway_ip + ' HA RIFIUTATO LA MODALITA'' MONITOR. ARRIVEDERCI!')
+                        logging.fatal('IL GATEWAY ' + mhgateway_ip + ' HA RIFIUTATO LA MODALITA'' MONITOR. ARRIVEDERCI!')
                         ExitApp()
                 else:
                     # KO, il gateway non ha risposto nel tempo previsto, impossibile proseguire.
-                    logobj.write('IL GATEWAY ' + mhgateway_ip + ' NON HA RISPOSTO NEL TEMPO PREVISTO. ARRIVEDERCI!')
+                    logging.error('IL GATEWAY ' + mhgateway_ip + ' NON HA RISPOSTO NEL TEMPO PREVISTO. ARRIVEDERCI!')
                     ExitApp()
             else:
                 # KO, il gateway non e' stato trovato, impossibile proseguire.
                 #print 'NESSUN GATEWAY BTICINO TROVATO ALL''INDIRIZZO ' + mhgateway_ip + '! ARRIVEDERCI!'
-                logobj.write('NESSUN GATEWAY BTICINO TROVATO ALL''INDIRIZZO ' + mhgateway_ip + '! ARRIVEDERCI!')
+                logging.fatal('NESSUN GATEWAY BTICINO TROVATO ALL''INDIRIZZO ' + mhgateway_ip + '! ARRIVEDERCI!')
                 ExitApp()
         else:
             # KO, errore nella lettura di parametri indispensabili, impossibile proseguire.
-            logobj.write('ERRORE NELLA LETTURA DI PARAMETRI INDISPENSABILI. ARRIVEDERCI!')
+            logging.fatal('ERRORE NELLA LETTURA DI PARAMETRI INDISPENSABILI. ARRIVEDERCI!')
             ExitApp()
     except Exception, err:
         if DEBUG == 1:
             print 'Errore in f.main! [' + str(sys.stderr.write('ERROR: %s\n' % str(err))) + ']'
-        #logobj.write('Errore in f.main! [' + str(sys.stderr.write('ERROR: %s\n' % str(err))) + ']')
+            logging.fatal('Errore in f.main! [' + str(sys.stderr.write('ERROR: %s\n' % str(err))) + ']')
 
 
 def ExitApp():
@@ -173,7 +193,7 @@ def ExitApp():
         smon.close
     except:
         # Exit
-        if not logobj.write('DISCONNESSO DAL GATEWAY. ARRIVEDERCI!'):
+        if not logging.debug('DISCONNESSO DAL GATEWAY. ARRIVEDERCI!'):
             print 'DISCONNESSO DAL GATEWAY. ARRIVEDERCI!'
         pushover_service('mhbus_listener ' + __version__ + ' closed!')
         sys.exit()

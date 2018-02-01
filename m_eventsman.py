@@ -58,7 +58,7 @@ tidt = []
 ### CONTROLLO EVENTI ###
 ########################
 
-def ControlloEventi(msgOpen, logobj):
+def ControlloEventi(msgOpen, logging):
     # GESTIONE EVENTI E AZIONI #
     trigger = msgOpen
     try:
@@ -79,7 +79,7 @@ def ControlloEventi(msgOpen, logobj):
                 tempdta = elem.attrib['data'].split('|')
                 tempopt = tempdta[1]
                 tempval = float(tempdta[2])
-                #logobj.write('TS: channel [' + channel + '] tempdta [' + tempdta + '] tempopt [' + tempopt + '] tempval [' + tempval + '] trigger [' + trigger + ']')
+                #logging.debug('TS: channel [' + channel + '] tempdta [' + tempdta + '] tempopt [' + tempopt + '] tempval [' + tempval + '] trigger [' + trigger + ']')
 
                 if tempopt == 'EQ':
                     # EQUAL
@@ -108,7 +108,7 @@ def ControlloEventi(msgOpen, logobj):
                 enerdta = elem.attrib['data'].split('|')
                 eneropt = enerdta[1]
                 enerval = float(enerdta[2])
-                #logobj.write('TE5: channel [' + channel + '] tempdta [' + tempdta + '] tempopt [' + tempopt + '] tempval [' + tempval + '] trigger [' + trigger + ']')
+                #logging.debug('TE5: channel [' + channel + '] tempdta [' + tempdta + '] tempopt [' + tempopt + '] tempval [' + tempval + '] trigger [' + trigger + ']')
 
                 if eneropt == 'EQ':
                     # EQUAL
@@ -163,13 +163,13 @@ def ControlloEventi(msgOpen, logobj):
                     if DEBUG == 1:
                         print 'EN sending: ' + testoDaInviare 
                 # Trovato evento, verifica come reagire.
-                invioNotifiche(data, channel, trigger, testoDaInviare, logobj)
+                invioNotifiche(data, channel, trigger, testoDaInviare, logging)
             else:
-                logobj.write('Alert non gestito causa canale <' + channel + '> non abilitato!')
+                logging.debug('Alert non gestito causa canale <' + channel + '> non abilitato!')
     except Exception, err:
         if DEBUG == 1:
             print 'Errore in f.ControlloEventi! [' + str(sys.exc_info()) + ']'
-        logobj.write('Errore in f.ControlloEventi! [' + str(sys.exc_info()) + ']')
+        logging.warn('Errore in f.ControlloEventi! [' + str(sys.exc_info()) + ']')
 
 #Routine per la gestione Termo
 def gestioneTermo(trigger):
@@ -317,34 +317,34 @@ def gestioneEnergia(trigger):
     
 
 #invio notifiche
-def invioNotifiche(data, channel, trigger, testoDaInviare, logobj):
+def invioNotifiche(data, channel, trigger, testoDaInviare, logging):
     if channel == 'POV':
         # ***********************************************************
         # ** Pushover channel                                      **
         # ***********************************************************
         povdata = data.split('|')
         if pushover_service(testoDaInviare) == True:
-            logobj.write('Inviato messaggio pushover a seguito di evento ' + trigger)
+            logging.info('Inviato messaggio pushover a seguito di evento ' + trigger)
         else:
-            logobj.write('Errore invio messaggio pushover a seguito di evento ' + trigger)
+            logging.warn('Errore invio messaggio pushover a seguito di evento ' + trigger)
     elif channel == 'SMS':
         # ***********************************************************
         # ** SMS channel (a GSM phone is required on RS-232)       **
         # ***********************************************************
         smsdata = data.split('|')
         if sms_service(smsdata[0],smsdata[1]) == True:
-            logobj.write('Inviato/i SMS a ' + smsdata[0] + ' a seguito di evento ' + trigger)
+            logging.info('Inviato/i SMS a ' + smsdata[0] + ' a seguito di evento ' + trigger)
         else:
-            logobj.write('Errore invio SMS a seguito di evento ' + trigger)
+            logging.warn('Errore invio SMS a seguito di evento ' + trigger)
     elif channel == 'TWT':
         # ***********************************************************
         # ** Twitter channel                                       **
         # ***********************************************************
         twtdata = data.split('|')
         if twitter_service(twtdata[0],testoDaInviare) == True:
-            logobj.write('Inviato tweet a ' + twtdata[0] + ' a seguito di evento ' + trigger)
+            logging.info('Inviato tweet a ' + twtdata[0] + ' a seguito di evento ' + trigger)
         else:
-            logobj.write('Errore invio tweet a seguito di evento ' + trigger)
+            logging.warn('Errore invio tweet a seguito di evento ' + trigger)
     elif channel == 'EML':
         # ***********************************************************
         # ** e-mail channel                                        **
@@ -354,39 +354,39 @@ def invioNotifiche(data, channel, trigger, testoDaInviare, logobj):
             print 'Tentativo invio email [' + str(emldata[0]) + '] con testo ' + testoDaInviare 
         
         if email_service(emldata[0],'mhbus_listener alert',testoDaInviare) == True:
-            logobj.write('Inviata/e e-mail a ' + str(emldata[0]) +  ' a seguito di evento ' + trigger)
+            logging.info('Inviata/e e-mail a ' + str(emldata[0]) +  ' a seguito di evento ' + trigger)
         else:
-            logobj.write('Errore invio e-mail a ' + str(emldata[0]) + ' a seguito di evento ' + trigger)
+            logging.warn('Errore invio e-mail a ' + str(emldata[0]) + ' a seguito di evento ' + trigger)
     elif channel == 'BUS':
         # ***********************************************************
         # ** SCS-BUS channel                                       **
         # ***********************************************************
         busdata = data.split('|')
         if opencmd_service(busdata[0]) == True:
-            logobj.write('Eseguito/i comando/i OPEN preimpostato/i a seguito di evento ' + trigger)
+            logging.info('Eseguito/i comando/i OPEN preimpostato/i a seguito di evento ' + trigger)
         else:
-            logobj.write('Errore esecuzione comando/i OPEN preimpostato/i a seguito di evento ' + trigger)
+            logging.warn('Errore esecuzione comando/i OPEN preimpostato/i a seguito di evento ' + trigger)
     elif channel == 'BAT':
         # ***********************************************************
         # ** Batch channel                                         **
         # ***********************************************************
         busdata = data.split('|')
         if batch_service(busdata[0]) == True:
-            logobj.write('Eseguito batch a seguito di evento ' + trigger)
+            logging.info('Eseguito batch a seguito di evento ' + trigger)
         else:
-            logobj.write('Errore esecuzione batch a seguito di evento ' + trigger)
+            logging.warn('Errore esecuzione batch a seguito di evento ' + trigger)
     elif channel == 'IFT':
         # ***********************************************************
         # ** INVIO ALERT TRAMITE IFTT                              **
         # ***********************************************************
         iftdata = data.split('|')
         if ifttt_service(iftdata[0],iftdata[1]) == True:
-           logobj.write('Inviato Ifttt a ' + iftdata[0] + ' a seguito di evento ' + trigger)
+           logging.debug('Inviato Ifttt a ' + iftdata[0] + ' a seguito di evento ' + trigger)
         else:
-           logobj.write('Errore invio Ifttt a seguito di evento ' + trigger)
+           logging.warn('Errore invio Ifttt a seguito di evento ' + trigger)
     else:
         # Error
-        logobj.write('Canale di notifica non riconosciuto! [' + action + ']')
+        logging.warn('Canale di notifica non riconosciuto! [' + action + ']')
         if DEBUG == 1:
             print 'Nessun canale conosciuto. NON spedito [' + testoDaInviare +']'
         
