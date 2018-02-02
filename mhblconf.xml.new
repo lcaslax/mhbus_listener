@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <mhbl> 
-	<log file="nomeFileDiLog.log" type="M" who_filter="" who_translate="Y" who_lang="ITA" Level="debug" /> <!-- Specify the filename without extension -->
+	<log file="nomeFileDiLog.log" type="M" who_filter="" who_translate="Y" who_lang="ITA" Level="debug" printOnScreen="1"/> <!-- Specify the filename without extension -->
 	<gateways> <!-- Gateway(s) priority -->
 		<gateway gwID="1" priority="1" descr="GW1" address="192.168.1.1" port="20000"/>
 		<gateway gwID="2" priority="2" descr="GW2" address="192.168.1.2" port="20000"/>

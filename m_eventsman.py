@@ -34,6 +34,7 @@ import requests
 from cl_log import Log
 from cl_btbus import MyHome
 from cl_email import EmailSender
+from m_main import DEBUG
 # Optionl module for GSM function.
 try:
     from cl_gsmat import GsmDevice
@@ -49,7 +50,6 @@ except ImportError:
 
 
 # Tunable parameters
-DEBUG = 1                     # Debug
 CFGFILENAME = 'mhblconf.xml'  # Configuration file name
 
 tidt = []
@@ -62,8 +62,6 @@ def ControlloEventi(msgOpen, logging):
     # GESTIONE EVENTI E AZIONI #
     trigger = msgOpen
     try:
-        # Lettura percorso e nome del file di log.
-
         # Se CHI=4 estrazione dati di temperatura.
         if trigger.startswith('*#4*'):
             trigger, nzo, vt = gestioneTermo(trigger)
@@ -568,7 +566,8 @@ def fixtemp(vt):
 
 
 def writeTemFile(tidt):
-    print 'scrivo ' + str(tidt)
+    if DEBUG == 1:
+        print 'scrivo ' + str(tidt)
     pickle.dump(tidt,open("tempdata.p", "wb"))
 
 def fixener(vto):

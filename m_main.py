@@ -43,12 +43,12 @@ from cl_btbus import MyHome
 
 
 # Tunable parameters
-DEBUG = 1                     # Debug
 ACK = '*#*1##'                # Acknowledge (OPEN message OK)
 NACK = '*#*0##'               # Not-Acknowledge (OPEN message KO)
 MONITOR = '*99*1##'           # Monitor session
 COMMANDS = '*99*0##'          # Commands session
 CFGFILENAME = 'mhblconf.xml'  # Configuration file name
+DEBUG = int(ET.parse(CFGFILENAME).find("log[@file]").attrib['printOnScreen'])                      # Debug
 
 
 # F U N C T I O N S #
@@ -66,7 +66,6 @@ def main():
         mhgateway_port = ET.parse(CFGFILENAME).find("gateways/gateway[@priority='1']").attrib['port']
         # Lettura percorso e nome del file di log
         flog = ET.parse(CFGFILENAME).find("log[@file]").attrib['file']
-        # Lettura del tipo file di log (D per giornaliero, M per mensile)
 
         # Istanzia log
         logtype = ET.parse(CFGFILENAME).find("log[@type]").attrib['type']
@@ -133,12 +132,10 @@ def main():
                                             if frame:
                                                 # Viene reinserito il terminatore open
                                                 msgOpen = frame + '##'
-                                                if DEBUG == 1:
-                                                    print 'Frame open in transito:' + msgOpen
                                                 # Extract WHO and write log
                                                 who = mhobj.mh_get_who(msgOpen)
                                                 if DEBUG == 1:
-                                                    print 'CHI rilevato:' + str(who)
+                                                    print 'Frame open in transito: [' + msgOpen + '] - CHI rilevato: [' + str(who) + ']'
                                                 # Se il 'CHI' non e' tra quelli da filtrare, scrivi il log
                                                 # e gestisci eventuale azione da compiere.
                                                 if who not in iwhofilter:
