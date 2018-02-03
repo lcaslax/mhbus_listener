@@ -71,7 +71,7 @@ def main():
         logtype = ET.parse(CFGFILENAME).find("log[@type]").attrib['type']
         logLevelName = ET.parse(CFGFILENAME).find("log[@Level]").attrib['Level']        
         logger = logging.getLogger()
-        handler = logging.handlers.TimedRotatingFileHandler(flog, when='h', interval=1, backupCount=0)
+        handler = logging.handlers.TimedRotatingFileHandler(flog, when=logtype, interval=1, backupCount=0)
         formatter = logging.Formatter('%(asctime)s %(name)-6s %(levelname)-8s %(message)s')
         handler.setFormatter(formatter)
         logger.addHandler(handler)
