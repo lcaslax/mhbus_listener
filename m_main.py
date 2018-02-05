@@ -48,7 +48,9 @@ NACK = '*#*0##'               # Not-Acknowledge (OPEN message KO)
 MONITOR = '*99*1##'           # Monitor session
 COMMANDS = '*99*0##'          # Commands session
 CFGFILENAME = 'mhblconf.xml'  # Configuration file name
-DEBUG = int(ET.parse(CFGFILENAME).find("log[@file]").attrib['printOnScreen'])                      # Debug
+
+ALLXML_FILE = ET.parse(CFGFILENAME)
+DEBUG = int(ALLXML_FILE.find("log[@file]").attrib['printOnScreen'])                      # Debug
 
 
 # F U N C T I O N S #
@@ -62,14 +64,14 @@ def main():
         # ** LETTURA PARAMETRI NECESSARI DA FILE DI CONFIGURAZIONE **
         # ***********************************************************
         # Lettura indirizzo IP e porta del gateway ethernet con priorita' 1
-        mhgateway_ip = ET.parse(CFGFILENAME).find("gateways/gateway[@priority='1']").attrib['address']
-        mhgateway_port = ET.parse(CFGFILENAME).find("gateways/gateway[@priority='1']").attrib['port']
+        mhgateway_ip = ALLXML_FILE.find("gateways/gateway[@priority='1']").attrib['address']
+        mhgateway_port = ALLXML_FILE.find("gateways/gateway[@priority='1']").attrib['port']
         # Lettura percorso e nome del file di log
-        flog = ET.parse(CFGFILENAME).find("log[@file]").attrib['file']
+        flog = ALLXML_FILE.find("log[@file]").attrib['file']
 
         # Istanzia log
-        logtype = ET.parse(CFGFILENAME).find("log[@type]").attrib['type']
-        logLevelName = ET.parse(CFGFILENAME).find("log[@Level]").attrib['Level']        
+        logtype = ALLXML_FILE.find("log[@type]").attrib['type']
+        logLevelName = ALLXML_FILE.find("log[@Level]").attrib['Level']        
         logger = logging.getLogger()
         handler = logging.handlers.TimedRotatingFileHandler(flog, when=logtype, interval=1, backupCount=0)
         formatter = logging.Formatter('%(asctime)s %(name)-6s %(levelname)-8s %(message)s')
@@ -88,12 +90,13 @@ def main():
         
         
         # Lettura dei 'CHI' da filtrare.
-        iwhofilter = map(int, ET.parse(CFGFILENAME).find("log[@file]").attrib['who_filter'].split(','))
+        iwhofilter = map(int, ALLXML_FILE.find("log[@file]").attrib['who_filter'].split(','))
         # Lettura parametri di traduzione del 'CHI'.
         strawho = 'N' # 'NO' default
-        strawho = ET.parse(CFGFILENAME).find("log[@file]").attrib['who_translate']
+        strawho = ALLXML_FILE.find("log[@file]").attrib['who_translate']
         strawholang = 'ITA' # 'ITA' default
-        strawholang = ET.parse(CFGFILENAME).find("log[@file]").attrib['who_lang']
+        strawholang = ALLXML_FILE.find("log[@file]").attrib['who_lang']
+        
         # ***********************************************************
         # ** CONNESSIONE AL GATEWAY                                **
         # ***********************************************************

@@ -35,6 +35,7 @@ from cl_log import Log
 from cl_btbus import MyHome
 from cl_email import EmailSender
 from m_main import DEBUG
+from m_main import ALLXML_FILE
 # Optionl module for GSM function.
 try:
     from cl_gsmat import GsmDevice
@@ -69,7 +70,9 @@ def ControlloEventi(msgOpen, logging):
             trigger, nto, vto  = gestioneEnergia(trigger)
             
         # Cerca trigger evento legato alla frame open ricevuta.
-        for elem in ET.parse(CFGFILENAME).iterfind("alerts/alert[@trigger='" + trigger + "']"):
+        
+        #for elem in ALLXML_FILE.find("alerts/alert[@trigger='" + trigger + "']"):
+        for elem in ALLXML_FILE.iterfind("alerts/alert[@trigger='" + trigger + "']"):
             # Estrai canale
             channel = elem.attrib['channel']
             # Se trigger di temperatura estrai parametri e verificali
@@ -130,7 +133,7 @@ def ControlloEventi(msgOpen, logging):
                         break    
 
             # Controlla stato del canale
-            status = ET.parse(CFGFILENAME).find("channels/channel[@type='" + channel + "']").attrib['enabled']
+            status = ALLXML_FILE.find("channels/channel[@type='" + channel + "']").attrib['enabled']
             if status == "Y":
                 # Inseriti valori dinamici nella stringa
                 data = elem.attrib['data']
@@ -146,7 +149,7 @@ def ControlloEventi(msgOpen, logging):
                         if DEBUG == 1:
                             print 'Non trovato temp da parsificare nel file config'
                     try:
-                        cfg_sonda = ET.parse(CFGFILENAME).find("sondeTemp/sonda[@type='" + str(nzo) + "']")
+                        cfg_sonda = ALLXML_FILE.find("sondeTemp/sonda[@type='" + str(nzo) + "']")
                         nomeSonda = cfg_sonda.attrib['data']
                         testoDaInviare = testoDaInviare.replace('{sonda}', str(nomeSonda))     
                         #testoDaInviare = str(s_temp[1]) + ' | Sonda ' + str(nomeSonda) + ' indica ' + str(vt) + ' gradi '
@@ -393,9 +396,9 @@ def pushover_service(pomsg):
     bOK = True
     try:
         # Lettura parametri Pushover da file di configurazione
-        poat = ET.parse(CFGFILENAME).find("channels/channel[@type='POV']").attrib['api_token']
-        pouk = ET.parse(CFGFILENAME).find("channels/channel[@type='POV']").attrib['user_key']
-        poaddr = ET.parse(CFGFILENAME).find("channels/channel[@type='POV']").attrib['address']
+        poat = ALLXML_FILE.find("channels/channel[@type='POV']").attrib['api_token']
+        pouk = ALLXML_FILE.find("channels/channel[@type='POV']").attrib['user_key']
+        poaddr = ALLXML_FILE.find("channels/channel[@type='POV']").attrib['address']
         conn = httplib.HTTPSConnection(poaddr)
         conn.request("POST", "/1/messages.json",
           urllib.urlencode({
@@ -433,8 +436,8 @@ def batch_service(batchdata):
 def sms_service(nums,smstext):
     bOK = True
     try:
-        serport = ET.parse(CFGFILENAME).find("channels/channel[@type='SMS']").attrib['serport']
-        serspeed = ET.parse(CFGFILENAME).find("channels/channel[@type='SMS']").attrib['serspeed']
+        serport = ALLXML_FILE.find("channels/channel[@type='SMS']").attrib['serport']
+        serspeed = ALLXML_FILE.find("channels/channel[@type='SMS']").attrib['serspeed']
         gsmobj = GsmDevice(serport,serspeed)
         numdest = nums.split(';')
         i = 0
@@ -457,10 +460,10 @@ def twitter_service(twtdest,twttext):
     bOK = True
     try:
         # Lettura parametri Pushover da file di configurazione
-        ckey = ET.parse(CFGFILENAME).find("channels/channel[@type='TWT']").attrib['ckey']
-        cset = ET.parse(CFGFILENAME).find("channels/channel[@type='TWT']").attrib['csecret']
-        atkey = ET.parse(CFGFILENAME).find("channels/channel[@type='TWT']").attrib['atkey']
-        atsec = ET.parse(CFGFILENAME).find("channels/channel[@type='TWT']").attrib['atsecret']
+        ckey = ALLXML_FILE.find("channels/channel[@type='TWT']").attrib['ckey']
+        cset = ALLXML_FILE.find("channels/channel[@type='TWT']").attrib['csecret']
+        atkey = ALLXML_FILE.find("channels/channel[@type='TWT']").attrib['atkey']
+        atsec = ALLXML_FILE.find("channels/channel[@type='TWT']").attrib['atsecret']
         twdest = twtdest.split(';')
         if DEBUG == 1:
             print twdest
@@ -495,13 +498,13 @@ def email_service(emldest,emlobj,emltext):
     bOK = True
     try:
         # Lettura parametri e-mail da file di configurazione
-        smtpsrv = ET.parse(CFGFILENAME).find("channels/channel[@type='EML']").attrib['smtp']
-        smtpport = cset = ET.parse(CFGFILENAME).find("channels/channel[@type='EML']").attrib['smtp_port']
-        smtpauth = ET.parse(CFGFILENAME).find("channels/channel[@type='EML']").attrib['smtp_auth']
-        smtpuser = ET.parse(CFGFILENAME).find("channels/channel[@type='EML']").attrib['smtp_user']
-        smtppsw = ET.parse(CFGFILENAME).find("channels/channel[@type='EML']").attrib['smtp_psw']
-        smtptls = ET.parse(CFGFILENAME).find("channels/channel[@type='EML']").attrib['smtp_tls_sec']
-        sender = ET.parse(CFGFILENAME).find("channels/channel[@type='EML']").attrib['sender']
+        smtpsrv = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp']
+        smtpport = cset = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp_port']
+        smtpauth = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp_auth']
+        smtpuser = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp_user']
+        smtppsw = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp_psw']
+        smtptls = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp_tls_sec']
+        sender = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['sender']
         mailobj = EmailSender(smtpsrv,smtpport,smtpauth,smtpuser,smtppsw,smtptls,sender)
         if not mailobj.send_email(emldest,emlobj,emltext) == True:
             bOK = False
@@ -516,8 +519,8 @@ def opencmd_service(opencmd):
     bOK = True
     try:
         # Lettura parametri Pushover da file di configurazione
-        mhgateway_ip = ET.parse(CFGFILENAME).find("gateways/gateway[@priority='1']").attrib['address']
-        mhgateway_port = ET.parse(CFGFILENAME).find("gateways/gateway[@priority='1']").attrib['port']
+        mhgateway_ip = ALLXML_FILE.find("gateways/gateway[@priority='1']").attrib['address']
+        mhgateway_port = ALLXML_FILE.find("gateways/gateway[@priority='1']").attrib['port']
         # Instanziamento classe MyHome
         mhobj = MyHome(mhgateway_ip,mhgateway_port)
         # Connessione all'impianto MyHome...
@@ -583,10 +586,10 @@ def ifttt_service(trigger,iftext):
     bOK = True
     try:
         # Lettura parametri IFT  da file di configurazione
-        IFT_address = ET.parse(CFGFILENAME).find("channels/channel[@type='IFT']").attrib['address']
+        IFT_address = ALLXML_FILE.find("channels/channel[@type='IFT']").attrib['address']
         if DEBUG == 1:
             print 'IFT_address: ' + IFT_address
-	    ckey = ET.parse(CFGFILENAME).find("channels/channel[@type='IFT']").attrib['ckey']
+	    ckey = ALLXML_FILE.find("channels/channel[@type='IFT']").attrib['ckey']
         url = IFT_address.format(e=trigger,k=ckey)
         if DEBUG == 1:
             print 'IFT Preparazione= trigger: ' + trigger + ' ckey ' + ckey + ' url ' + url
