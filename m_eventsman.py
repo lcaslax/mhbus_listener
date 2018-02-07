@@ -70,7 +70,7 @@ def ControlloEventi(msgOpen, logging):
         if trigger.startswith('*#4*'):
             trigger, nzo, vt = gestioneTermo(trigger)
         elif trigger.startswith('*#18*'):
-            trigger, nto, vto  = gestioneEnergia(trigger)
+            trigger, nto, vto, dat = gestioneEnergia(trigger)
             
         # Cerca trigger evento legato alla frame open ricevuta.
         
@@ -169,7 +169,7 @@ def ControlloEventi(msgOpen, logging):
                         print 'TEMP sending: ' + testoDaInviare
                 #se energia preparo il testo da inviare
                 elif trigger.startswith('TE'):
-                    testoDaInviare = testoDaInviare + str(vto)         ######## mod andrea
+                    testoDaInviare = testoDaInviare + str(dat) + ' ' + str(vto)
                     if DEBUG == 1:
                         print 'EN sending: ' + testoDaInviare 
                 # Trovato evento, verifica come reagire.
@@ -282,6 +282,7 @@ def gestioneTermo(trigger):
 def gestioneEnergia(trigger):
     nto = 0
     vto = float(0.0)
+    dat = 0
     if trigger.split('*')[3] == '113':
         # Numero toroide
         nto = int(trigger.split('*')[2][-1])
@@ -299,6 +300,8 @@ def gestioneEnergia(trigger):
         #print nto
         # Lettura dati energia
         vto = fixener(trigger.split('*')[5])
+        dat = trigger.split('*')[3]
+        dat = dat.split('#')[2] + '/' + dat.split('#')[1]
         trigger = 'TE4' + str(nto)
         #print trigger
     elif trigger.split('*')[3][:2] == '52':   #energia totale per mese specifico
@@ -307,6 +310,8 @@ def gestioneEnergia(trigger):
         #print nto
         # Lettura dati energia
         vto = fixener(trigger.split('*')[4])
+        dat = trigger.split('*')[3]
+        dat = dat.split('#')[2] + '/' + dat.split('#')[1]
         trigger = 'TE3' + str(nto)
         #print trigger
     elif trigger.split('*')[3] == '53':   #energia parziale del mese corrente
@@ -323,7 +328,7 @@ def gestioneEnergia(trigger):
         None
         # Lettura canale
         #channel = elem.attrib['channel']
-    return trigger, nto, vto   
+    return trigger, nto, vto, dat   
     
 
 #invio notifiche
@@ -571,6 +576,8 @@ def fixener(vto):
    # Adatta il formato di energia
    vto = vto[:-2]
    vto = round(float(vto)/1000 , 2)
+   vto = str(vto)
+   vto = vto.replace(".",",") + ' kWh'
    return vto
 
 def ifttt_service(trigger,iftext):
