@@ -36,6 +36,9 @@ from cl_btbus import MyHome
 from cl_email import EmailSender
 from m_main import DEBUG
 from m_main import ALLXML_FILE
+import m_config as MCFG
+
+#from m_main import statusChannel
 # Optionl module for GSM function.
 try:
     from cl_gsmat import GsmDevice
@@ -72,7 +75,11 @@ def ControlloEventi(msgOpen, logging):
         # Cerca trigger evento legato alla frame open ricevuta.
         
         #for elem in ALLXML_FILE.find("alerts/alert[@trigger='" + trigger + "']"):
-        for elem in ALLXML_FILE.iterfind("alerts/alert[@trigger='" + trigger + "']"):
+        #s_trigger = "alerts/alert[@trigger='%s']" % (trigger)
+        #for elem in ALLXML_FILE.iterfind(s_trigger):
+        
+        elem = MCFG.alertElement.get(trigger)
+        if elem != None:
             # Estrai canale
             channel = elem.attrib['channel']
             # Se trigger di temperatura estrai parametri e verificali
@@ -85,23 +92,23 @@ def ControlloEventi(msgOpen, logging):
                 if tempopt == 'EQ':
                     # EQUAL
                     if not vt == tempval:
-                        break
+                        return
                 elif tempopt == 'LS':
                     # LESS THAN
                     if not vt < tempval:
-                        break
+                        return
                 elif tempopt == 'LE':
                     # LESS OR EQUAL
                     if not vt <= tempval:
-                        break
+                        return
                 elif tempopt == 'GR':
                     # GREATER THAN
                     if not vt > tempval:
-                        break
+                        return
                 elif tempopt == 'GE':
                     # GREATER OR EQUAL
                     if not vt >= tempval:
-                        break
+                        return
             #- TE5x energia istantanea (x e' il toroide)
             #- TE4x energia del giorno precedente
             #- TE3x energia mese precedente        
@@ -114,27 +121,28 @@ def ControlloEventi(msgOpen, logging):
                 if eneropt == 'EQ':
                     # EQUAL
                     if not vto == enerval:
-                        break
+                        return
                 elif eneropt == 'LS':
                     # LESS THAN
                     if not vto < enerval:
-                        break
+                        return
                 elif eneropt == 'LE':
                     # LESS OR EQUAL
                     if not vto <= enerval:
-                        break
+                        return
                 elif eneropt == 'GR':
                     # GREATER THAN
                     if not vto > enerval:
-                        break
+                        return
                 elif eneropt == 'GE':
                     # GREATER OR EQUAL
                     if not vto >= enerval:
-                        break    
+                        return    
 
             # Controlla stato del canale
-            status = ALLXML_FILE.find("channels/channel[@type='" + channel + "']").attrib['enabled']
-            if status == "Y":
+            #status = ALLXML_FILE.find("channels/channel[@type='%s']").attrib['enabled'] % (channel)
+             
+            if MCFG.enabledChannel.get(channel):
                 # Inseriti valori dinamici nella stringa
                 data = elem.attrib['data']
                 s_temp = data.split("|");
@@ -149,7 +157,8 @@ def ControlloEventi(msgOpen, logging):
                         if DEBUG == 1:
                             print 'Non trovato temp da parsificare nel file config'
                     try:
-                        cfg_sonda = ALLXML_FILE.find("sondeTemp/sonda[@type='" + str(nzo) + "']")
+                        #cfg_sonda = ALLXML_FILE.find("sondeTemp/sonda[@type='%s']") % (str(nzo))
+                        cfg_sonda = MCFG.elencoSondeTemp.get(str(nzo))
                         nomeSonda = cfg_sonda.attrib['data']
                         testoDaInviare = testoDaInviare.replace('{sonda}', str(nomeSonda))     
                         #testoDaInviare = str(s_temp[1]) + ' | Sonda ' + str(nomeSonda) + ' indica ' + str(vt) + ' gradi '
@@ -166,7 +175,7 @@ def ControlloEventi(msgOpen, logging):
                 # Trovato evento, verifica come reagire.
                 invioNotifiche(data, channel, trigger, testoDaInviare, logging)
             else:
-                logging.debug('Alert non gestito causa canale <' + channel + '> non abilitato!')
+                logging.debug('Alert non gestito causa canale <%s> non abilitato!') % (channel)
     except Exception, err:
         if DEBUG == 1:
             print 'Errore in f.ControlloEventi! [' + str(sys.exc_info()) + ']'
@@ -217,7 +226,7 @@ def gestioneTermo(trigger):
         # Lettura temperatura
         vt = fixtemp(trigger.split('*')[4][0:4])
         if DEBUG == 1:
-            print 'TEMP: Sonda interna [' + str(nzo) + '] rilevata temp  [' + str(vt) + ']'
+            print 'TEMP: Sonda interna [%s] rilevata temp  [%s]' % (str(nzo), str(vt))
         # Lettura ultimi dati registrati
         try:
             ###tidt = []
@@ -227,7 +236,7 @@ def gestioneTermo(trigger):
             for elem in tidt:
                 if i%2 == 0:
                     if DEBUG == 1:
-                        print 'TEMP: Sonda interna | Precedenti valori: sonda=[' + str(tidt[i]) + ']  temp=[' + str(tidt[i+1]) + ']'
+                        print 'TEMP: Sonda interna | Precedenti valori: sonda=[%s]  temp=[%s]' % (str(tidt[i]), str(tidt[i+1]))
                     if nzo == tidt[i]:
                         if vt == float(tidt[i+1]):
                             #temp della sonda invariata non modifico nulla
@@ -236,7 +245,7 @@ def gestioneTermo(trigger):
                         else:
                             # la temp della sonda e' cambiata salvala
                             if DEBUG == 1:
-                                print 'TEMP: ' + str(vt) + ' della sonda ' + str(nzo) + ' e cambiata.\' lettura precedente: ' + str(tidt[i+1])
+                                print 'TEMP: %s della sonda %s e cambiata. lettura precedente: %s' % (str(vt), str(nzo), str(tidt[i+1]))
                             trigger = 'TSZ' + str(nzo) 
                             b_writeTemp = 0
                             tidt[i+1] = str(vt)
@@ -245,14 +254,14 @@ def gestioneTermo(trigger):
             # se non ho trovato la sonda nel file aggiorno il file
             if b_writeTemp == 1:
                 if DEBUG == 1:
-                    print 'TEMP: Sonda ' + str(nzo) + ' non presente nel file valore salvato: ' + str(vt)
+                    print 'TEMP: Sonda %s non presente nel file valore salvato: %s' % (str(nzo), str(vt))
                 trigger = 'TSZ' + str(nzo)  
                 tidt.append(nzo)
                 tidt.append(str(vt))
                 writeTemFile(tidt)             
         except Exception:
             if DEBUG == 1:
-                print 'Errore in f.ControlloEventi! [' + str(sys.exc_info()) + '] File tempdata.p inesistente?'
+                print 'Errore in f.ControlloEventi! [%s] File tempdata.p inesistente?' % (str(sys.exc_info()))
             # Nessun dato storicizzato, scrivi quello appena letto.
             tidt = []
             tidt.append(nzo)
@@ -262,7 +271,7 @@ def gestioneTermo(trigger):
             # OK trigger
             trigger = 'TSZ' + str(nzo)
             if DEBUG == 1:
-                print'TEMP: Sonda interna | Nessun dato storicizzato trigger =  [' + str(trigger) + ']'
+                print'TEMP: Sonda interna | Nessun dato storicizzato trigger =  [%s]' % (str(trigger))
     else:
         # Ignorare altre frame termoregolazione non gestite.
         None
@@ -395,29 +404,27 @@ def invioNotifiche(data, channel, trigger, testoDaInviare, logging):
 def pushover_service(pomsg):
     bOK = True
     try:
-        # Lettura parametri Pushover da file di configurazione
-        poat = ALLXML_FILE.find("channels/channel[@type='POV']").attrib['api_token']
-        pouk = ALLXML_FILE.find("channels/channel[@type='POV']").attrib['user_key']
-        poaddr = ALLXML_FILE.find("channels/channel[@type='POV']").attrib['address']
-        conn = httplib.HTTPSConnection(poaddr)
+        conn = httplib.HTTPSConnection(MCFG.pov_poaddr)
         conn.request("POST", "/1/messages.json",
           urllib.urlencode({
-            "token": poat,
-            "user": pouk,
+            "token": MCFG.pov_poat,
+            "user": MCFG.pov_pouk,
             "message": pomsg,
           }), { "Content-type": "application/x-www-form-urlencoded" })
         conn.getresponse()
+        #conn.close() ?
     except:
         bOK = False
     finally:
         return bOK
+        
 
 
 def batch_service(batchdata):
     bOK = True
     try:
         import subprocess
-        # Determina tip osistema operativo
+        # Determina tipo sistema operativo
         ostype = platform.system()
         if ostype == 'Windows':
             esito = subprocess.call([batchdata])
@@ -459,16 +466,11 @@ def sms_service(nums,smstext):
 def twitter_service(twtdest,twttext):
     bOK = True
     try:
-        # Lettura parametri Pushover da file di configurazione
-        ckey = ALLXML_FILE.find("channels/channel[@type='TWT']").attrib['ckey']
-        cset = ALLXML_FILE.find("channels/channel[@type='TWT']").attrib['csecret']
-        atkey = ALLXML_FILE.find("channels/channel[@type='TWT']").attrib['atkey']
-        atsec = ALLXML_FILE.find("channels/channel[@type='TWT']").attrib['atsecret']
         twdest = twtdest.split(';')
         if DEBUG == 1:
             print twdest
         # Instanziamento classe TwitterApi
-        twtobj = TwitterApi(ckey,cset,atkey,atsec)
+        twtobj = TwitterApi(MCFG.twt_ckey,MCFG.twt_cset,MCFG.twt_atkey,MCFG.twt_atsec)
         i = 0
         while i < len(twdest):
             if twdest[i]:
@@ -497,20 +499,15 @@ def twitter_service(twtdest,twttext):
 def email_service(emldest,emlobj,emltext):
     bOK = True
     try:
-        # Lettura parametri e-mail da file di configurazione
-        smtpsrv = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp']
-        smtpport = cset = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp_port']
-        smtpauth = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp_auth']
-        smtpuser = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp_user']
-        smtppsw = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp_psw']
-        smtptls = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['smtp_tls_sec']
-        sender = ALLXML_FILE.find("channels/channel[@type='EML']").attrib['sender']
-        mailobj = EmailSender(smtpsrv,smtpport,smtpauth,smtpuser,smtppsw,smtptls,sender)
+        mailobj = EmailSender(em_smtpsrv,em_smtpport,em_smtpauth,em_smtpuser,em_smtppsw,em_smtptls,em_sender)
         if not mailobj.send_email(emldest,emlobj,emltext) == True:
             bOK = False
     except Exception, err:
         bOK = False
-        print 'Errore in invio email! [' + str(sys.exc_info()) + ']'
+        logging.warn('Errore in invio email! [' + str(sys.exc_info()) + ']')
+        if DEBUG == 1:
+            print 'Errore in invio email! [' + str(sys.exc_info()) + ']'
+        
     finally:
         return bOK
 
@@ -518,11 +515,8 @@ def email_service(emldest,emlobj,emltext):
 def opencmd_service(opencmd):
     bOK = True
     try:
-        # Lettura parametri Pushover da file di configurazione
-        mhgateway_ip = ALLXML_FILE.find("gateways/gateway[@priority='1']").attrib['address']
-        mhgateway_port = ALLXML_FILE.find("gateways/gateway[@priority='1']").attrib['port']
         # Instanziamento classe MyHome
-        mhobj = MyHome(mhgateway_ip,mhgateway_port)
+        mhobj = MyHome(MCFG.mhgateway_ip,MCFG.mhgateway_port)
         # Connessione all'impianto MyHome...
         scmd = mhobj.mh_connect()
         mhcmd  = opencmd.split(';')
@@ -577,22 +571,18 @@ def fixener(vto):
    # Adatta il formato di energia
    vto = vto[:-2]
    vto = round(float(vto)/1000 , 2)
-   #vto = vto/1000,2)
-   #vto = str(vto)
-   #vto = vto.replace(".",",")
    return vto
 
 def ifttt_service(trigger,iftext):
     bOK = True
     try:
-        # Lettura parametri IFT  da file di configurazione
-        IFT_address = ALLXML_FILE.find("channels/channel[@type='IFT']").attrib['address']
         if DEBUG == 1:
             print 'IFT_address: ' + IFT_address
-	    ckey = ALLXML_FILE.find("channels/channel[@type='IFT']").attrib['ckey']
-        url = IFT_address.format(e=trigger,k=ckey)
+        url = ift_address.format(e=trigger,k=ift_ckey)
+        
+        logging.debug('IFT Preparazione= trigger: ' + trigger + ' ckey ' + ift_ckey + ' url ' + url)
         if DEBUG == 1:
-            print 'IFT Preparazione= trigger: ' + trigger + ' ckey ' + ckey + ' url ' + url
+            print 'IFT Preparazione= trigger: ' + trigger + ' ckey ' + ift_ckey + ' url ' + url
         payload = {'value1': iftext}
         return requests.post(url, data=payload)
     except:

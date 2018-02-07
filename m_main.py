@@ -40,6 +40,7 @@ import logging
 import logging.handlers
 from logging.config import fileConfig
 from cl_btbus import MyHome
+import m_config
 
 
 # Tunable parameters
@@ -85,10 +86,10 @@ def main():
             'critical':logging.CRITICAL,
         }
         livelloLog = LEVELS.get(logLevelName)
-
         logger.setLevel(livelloLog)
-        
-        
+                
+        m_config.init();        
+            
         # Lettura dei 'CHI' da filtrare.
         iwhofilter = map(int, ALLXML_FILE.find("log[@file]").attrib['who_filter'].split(','))
         # Lettura parametri di traduzione del 'CHI'.
@@ -138,7 +139,7 @@ def main():
                                                 # Extract WHO and write log
                                                 who = mhobj.mh_get_who(msgOpen)
                                                 if DEBUG == 1:
-                                                    print 'Frame open in transito: [' + msgOpen + '] - CHI rilevato: [' + str(who) + ']'
+                                                    print 'Frame open in transito: [%s] - CHI rilevato: [%s]' % (msgOpen, str(who))
                                                 # Se il 'CHI' non e' tra quelli da filtrare, scrivi il log
                                                 # e gestisci eventuale azione da compiere.
                                                 if who not in iwhofilter:
@@ -166,16 +167,16 @@ def main():
                                 logging.warn(str(frames) + ' - ' + str(smon))
                     else:
                         # KO, non e' stato possibile attivare la modalita' MONITOR, impossibile proseguire.
-                        logging.fatal('IL GATEWAY ' + mhgateway_ip + ' HA RIFIUTATO LA MODALITA'' MONITOR. ARRIVEDERCI!')
+                        logging.fatal('IL GATEWAY %s HA RIFIUTATO LA MODALITA'' MONITOR. ARRIVEDERCI!') % (mhgateway_ip)
                         ExitApp()
                 else:
                     # KO, il gateway non ha risposto nel tempo previsto, impossibile proseguire.
-                    logging.error('IL GATEWAY ' + mhgateway_ip + ' NON HA RISPOSTO NEL TEMPO PREVISTO. ARRIVEDERCI!')
+                    logging.error('IL GATEWAY %s NON HA RISPOSTO NEL TEMPO PREVISTO. ARRIVEDERCI!') % (mhgateway_ip) 
                     ExitApp()
             else:
                 # KO, il gateway non e' stato trovato, impossibile proseguire.
                 #print 'NESSUN GATEWAY BTICINO TROVATO ALL''INDIRIZZO ' + mhgateway_ip + '! ARRIVEDERCI!'
-                logging.fatal('NESSUN GATEWAY BTICINO TROVATO ALL''INDIRIZZO ' + mhgateway_ip + '! ARRIVEDERCI!')
+                logging.fatal('NESSUN GATEWAY BTICINO TROVATO ALL''INDIRIZZO %s! ARRIVEDERCI!') % (mhgateway_ip)
                 ExitApp()
         else:
             # KO, errore nella lettura di parametri indispensabili, impossibile proseguire.
