@@ -168,11 +168,15 @@ def ControlloEventi(msgOpen, logging):
                     if DEBUG == 1:
                         print 'TEMP sending: ' + testoDaInviare
                 #se energia preparo il testo da inviare
-                elif trigger.startswith('TE'):
+                elif (trigger.startswith('TE4') or trigger.startswith('TE3')):
                     testoDaInviare = testoDaInviare + str(dat) + ' ' + str(vto)
                     if DEBUG == 1:
                         print 'EN sending: ' + testoDaInviare 
                 # Trovato evento, verifica come reagire.
+                elif (trigger.startswith('TE5') or trigger.startswith('TE2')):
+                    testoDaInviare = testoDaInviare + str(vto)
+                    if DEBUG == 1:
+                        print 'EN sending: ' + testoDaInviare
                 invioNotifiche(data, channel, trigger, testoDaInviare, logging)
             else:
                 logging.debug('Alert non gestito causa canale <%s> non abilitato!') % (channel)
@@ -289,7 +293,7 @@ def gestioneEnergia(trigger):
         #print nto
         # Lettura dati energia
         vto = trigger.split('*')[4]
-        vto = float(vto[:-2])
+        vto = int(vto[:-2])
         #print vto
         # Trigger
         trigger = 'TE5' + str(nto)
