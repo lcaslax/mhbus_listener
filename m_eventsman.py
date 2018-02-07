@@ -281,7 +281,7 @@ def gestioneEnergia(trigger):
         # Trigger
         trigger = 'TE5' + str(nto)
         #print trigger
-    elif (trigger.split('*')[3][:3]) == '511' and trigger.split('*')[4] == '25':
+    elif (trigger.split('*')[3][:3]) == '511' and trigger.split('*')[4] == '25':  #energia totale per giorno specifico
         # Numero toroide
         nto = int(trigger.split('*')[2][-1])
         #print nto
@@ -289,7 +289,7 @@ def gestioneEnergia(trigger):
         vto = fixener(trigger.split('*')[5])
         trigger = 'TE4' + str(nto)
         #print trigger
-    elif trigger.split('*')[3][:2] == '52':
+    elif trigger.split('*')[3][:2] == '52':   #energia totale per mese specifico
         # Numero toroide
         nto = int(trigger.split('*')[2][-1])
         #print nto
@@ -297,7 +297,7 @@ def gestioneEnergia(trigger):
         vto = fixener(trigger.split('*')[4])
         trigger = 'TE3' + str(nto)
         #print trigger
-    elif trigger.split('*')[3] == '53':
+    elif trigger.split('*')[3] == '53':   #energia parziale del mese corrente
         # Numero toroide
         nto = int(trigger.split('*')[2][-1])
         #print nto
