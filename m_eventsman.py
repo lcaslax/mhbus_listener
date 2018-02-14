@@ -165,6 +165,7 @@ def ControlloEventi(msgOpen, logging):
                     except Exception, err:
                         if DEBUG == 1:
                             print 'Non trovato sondeTemp e sonda nel file config'
+                        logging.info('Sonda [%s] non trovata' ) % (str(nzo))
                     if DEBUG == 1:
                         print 'TEMP sending: ' + testoDaInviare
                 #se energia preparo il testo da inviare

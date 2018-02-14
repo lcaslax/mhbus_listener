@@ -20,7 +20,7 @@ def init():
     
     global elencoSondeTemp
     elencoSondeTemp = {}
-    for sonda in ALLXML_FILE.find("sondeTemp/sonda"):
+    for sonda in ALLXML_FILE.iterfind("sondeTemp/sonda"):
         elencoSondeTemp[sonda.attrib['type']] = sonda
     
     # Lettura parametri TWITTER da file di configurazione
