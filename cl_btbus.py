@@ -47,7 +47,22 @@ class MyHome:
             self.sck = None
         finally:
             return self.sck
-
+    
+    def mh_rcv_connections(self):
+        # Connect to MyHome(r) gateway
+        try:
+            self.sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #self.sck.accept()
+            self.sck.bind((self.mh_gwaddr, int(self.mh_gwport)))
+            #become a server socket
+            self.sck.listen(1)
+            conn, addr = self.sck.accept()
+        except Exception, e:
+            print "Err: %s" % (str(e))
+            conn = None
+        finally:
+            return conn
+    
     def mh_receive_data(self,conn):
         # Read BUS data
         try:
@@ -76,6 +91,18 @@ class MyHome:
         who = int(tag.replace('#',''))
         #print who
         return who
+
+    def mh_closeConnect(self):
+        try:
+            #self.sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            #self.sck.connect((self.mh_gwaddr,int(self.mh_gwport)))
+            self.sck.shutdown(socket.SHUT_RDWR)
+            self.sck.close()
+        except Exception, e:
+             print "Err: %s" % (str(e))
+            #conn = None
+        finally:
+            return None
 
     def mh_get_who_descr(self,who, lang):
         # Ritorna la descrizione del 'CHI' passato
