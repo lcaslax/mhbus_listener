@@ -4,7 +4,7 @@ Created on 15 feb 2018
 @author: lucslava
 '''
 
-__version__ = '2.0_beta'
+__version__ = '2.0_beta_01'
 
 
 import xml.etree.ElementTree as ET
