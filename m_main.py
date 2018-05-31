@@ -29,7 +29,7 @@
 
 # Thanks to MyOpen Community (http://www.myopen-legrandgroup.com/) for support.
 
-__version__ = '1.7'
+__version__ = '2.1.0_beta01'
 
 import re
 import time

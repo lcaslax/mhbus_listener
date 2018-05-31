@@ -37,6 +37,8 @@ from cl_email import EmailSender
 from m_main import DEBUG
 from m_main import ALLXML_FILE
 import m_config as MCFG
+import string
+from m_config import StoreEnergie
 
 #from m_main import statusChannel
 # Optionl module for GSM function.
@@ -65,6 +67,8 @@ tidt = []
 def ControlloEventi(msgOpen, logging):
     # GESTIONE EVENTI E AZIONI #
     trigger = msgOpen
+    eneropt = string
+    enerval = float()
     try:
         # Se CHI=4 estrazione dati di temperatura.
         if trigger.startswith('*#4*'):
@@ -116,28 +120,60 @@ def ControlloEventi(msgOpen, logging):
                 enerdta = elem.attrib['data'].split('|')
                 eneropt = enerdta[1]
                 enerval = float(enerdta[2])
+                key = trigger + '|' + eneropt+'|'+str(enerval)
                 #logging.debug('TE5: channel [' + channel + '] tempdta [' + tempdta + '] tempopt [' + tempopt + '] tempval [' + tempval + '] trigger [' + trigger + ']')
+                sE= StoreEnergie()
+                #precVal = MCFG.StoreEnergie.get(key)
+                precVal = sE.store.get(key)
 
                 if eneropt == 'EQ':
                     # EQUAL
                     if not vto == enerval:
                         return
                 elif eneropt == 'LS':
-                    # LESS THAN
                     if not vto < enerval:
-                        return
+                        #Esisteva una chiave--> cancello e segnalo che siamo usciti dall'alert
+                        if precVal != None:
+                            vto = precVal
+                            sE.store.pop(key)
+                            return str(vto)
+                        else:
+                            return
+                    ##vto = EnergiaLESSTHAN(vto, enerval, key, precVal)
+                    ##if vto == 'null':
+                    ##    return
                 elif eneropt == 'LE':
                     # LESS OR EQUAL
                     if not vto <= enerval:
                         return
                 elif eneropt == 'GR':
-                    # GREATER THAN
+                    #vto = EnergiaGRATERTHAN(vto, enerval, key, precVal)
+                    #if vto == 'null':
+                    #    return
                     if not vto > enerval:
                         return
                 elif eneropt == 'GE':
                     # GREATER OR EQUAL
                     if not vto >= enerval:
-                        return    
+                        return 
+                else:
+                    if precVal != None:
+                        minmax = precVal.split('|')
+                        if (int(minmax[0]) <= vto):
+                            if (int(minmax[1]) >= vto):
+                                return 
+                            else:
+                                minmax[1] = str(vto)
+                                if DEBUG:
+                                    print "EnergiaLESSTHAN: new max %s" % (minmax[1]) 
+                        else:
+                            minmax[0] = str(vto)
+                            if DEBUG:
+                                print "EnergiaLESSTHAN: new min %s" % (minmax[0])
+                        sE.store[key] = str(minmax[0])+'|'+str(minmax[1])
+                    else:
+                        #MCFG.StoreEnergie[key] = str(vto)+'|'+str(vto)
+                        sE.store[key] = str(vto)+'|'+str(vto)   
 
             # Controlla stato del canale
             #status = ALLXML_FILE.find("channels/channel[@type='%s']").attrib['enabled'] % (channel)
@@ -410,6 +446,69 @@ def invioNotifiche(data, channel, trigger, testoDaInviare, logging):
         if DEBUG == 1:
             print 'Nessun canale conosciuto. NON spedito [' + testoDaInviare +']'
         
+        
+def EnergiaLESSTHAN(vto, enerval, key, precVal):
+    sE= StoreEnergie()
+    if DEBUG:
+        print "EnergiaLESSTHAN: vto %s enerval %s key %s precVal %s" % (str(vto), enerval, key, precVal)
+     # LESS THAN
+    if not vto < enerval:
+        #Esisteva una chiave--> cancello e segnalo che siamo usciti dall'alert
+        if precVal != None:
+            vto = precVal
+            sE.store.pop(key)
+            return str(vto)
+        else:
+            return 'null'
+    else:
+        if precVal != None:
+            minmax = precVal.split('|')
+            if (int(minmax[0]) <= vto):
+                if (int(minmax[1]) >= vto):
+                    return 'null'
+                else:
+                    minmax[1] = str(vto)
+                    if DEBUG:
+                        print "EnergiaLESSTHAN: new max %s" % (minmax[1]) 
+            else:
+                minmax[0] = str(vto)
+                if DEBUG:
+                    print "EnergiaLESSTHAN: new min %s" % (minmax[0])
+            sE.store[key] = str(minmax[0])+'|'+str(minmax[1])
+        else:
+            #MCFG.StoreEnergie[key] = str(vto)+'|'+str(vto)
+            sE.store[key] = str(vto)+'|'+str(vto)
+    return str(vto)
+
+def EnergiaGRATERTHAN(vto, enerval, key, precVal):
+    if not vto > enerval:
+        #Esisteva una chiave--> cancello e segnalo che siamo usciti dall'alert
+        if precVal != None:
+            vto = precVal
+            sE.store.pop(key)
+        else:
+            return
+    else:
+        if precVal != None:
+            minmax = precVal.split('|')
+            if (int(minmax[0]) <= vto):
+                if (int(minmax[1]) >= vto):
+                    return
+                else:
+                    minmax[1] = str(vto)
+            else:
+                minmax[0] = str(vto)
+            sE.store[key] = str(minmax[0])+'|'+str(minmax[1])
+        else:
+            #MCFG.StoreEnergie[key] = str(vto)+'|'+str(vto)
+            sE.store[key] = str(vto)+'|'+str(vto)
+    return str(vto)
+
+##########################
+##########################
+######### SERVICE
+##########################
+##########################
 
 def pushover_service(pomsg):
     bOK = True

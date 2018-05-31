@@ -55,6 +55,9 @@ def init():
     global mhgateway_ip, mhgateway_port
     mhgateway_ip = ALLXML_FILE.find("gateways/gateway[@priority='1']").attrib['address']
     mhgateway_port = ALLXML_FILE.find("gateways/gateway[@priority='1']").attrib['port']
+ 
+class StoreEnergie(): 
+    store = {}
     
     #cfg_sonda = ALLXML_FILE.find("sondeTemp/sonda[@type='%s']") % (str(nzo))
     #statusChannel = ALLXML_FILE.find("channels/channel[@type='%s']").attrib['enabled'] % (channel)
