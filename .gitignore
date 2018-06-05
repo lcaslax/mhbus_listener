@@ -2,5 +2,7 @@ mhblconf.xml
 mhlog_191214.txt
 *.pyc
 *.txt
+logs/*
 tempdata.p
 dist/mhbus_listener-1.7.zip
+/.metadata/

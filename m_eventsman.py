@@ -86,33 +86,18 @@ def ControlloEventi(msgOpen, logging):
         if elem != None:
             # Estrai canale
             channel = elem.attrib['channel']
-            # Se trigger di temperatura estrai parametri e verificali
+            
+            # Se trigger di TEMPERATURA estrai parametri e verificali
             if trigger.startswith('TS'):
                 tempdta = elem.attrib['data'].split('|')
                 tempopt = tempdta[1]
                 tempval = float(tempdta[2])
                 #logging.debug('TS: channel [' + channel + '] tempdta [' + tempdta + '] tempopt [' + tempopt + '] tempval [' + tempval + '] trigger [' + trigger + ']')
 
-                if tempopt == 'EQ':
-                    # EQUAL
-                    if not vt == tempval:
-                        return
-                elif tempopt == 'LS':
-                    # LESS THAN
-                    if not vt < tempval:
-                        return
-                elif tempopt == 'LE':
-                    # LESS OR EQUAL
-                    if not vt <= tempval:
-                        return
-                elif tempopt == 'GR':
-                    # GREATER THAN
-                    if not vt > tempval:
-                        return
-                elif tempopt == 'GE':
-                    # GREATER OR EQUAL
-                    if not vt >= tempval:
-                        return
+                vt = PrepareValuesToSend(vt, trigger, tempopt, tempval)
+                if (vt is None) or (str(vt).strip()==""):  #stringa vuota
+                   return
+                    
             #- TE5x energia istantanea (x e' il toroide)
             #- TE4x energia del giorno precedente
             #- TE3x energia mese precedente        
@@ -120,63 +105,10 @@ def ControlloEventi(msgOpen, logging):
                 enerdta = elem.attrib['data'].split('|')
                 eneropt = enerdta[1]
                 enerval = float(enerdta[2])
-                key = trigger + '|' + eneropt+'|'+str(enerval)
-                #logging.debug('TE5: channel [' + channel + '] tempdta [' + tempdta + '] tempopt [' + tempopt + '] tempval [' + tempval + '] trigger [' + trigger + ']')
-                sE= StoreEnergie()
-                #precVal = MCFG.StoreEnergie.get(key)
-                precVal = sE.store.get(key)
-
-                if eneropt == 'EQ':
-                    # EQUAL
-                    if not vto == enerval:
-                        return
-                elif eneropt == 'LS':
-                    if not vto < enerval:
-                        #Esisteva una chiave--> cancello e segnalo che siamo usciti dall'alert
-                        if precVal != None:
-                            vto = precVal
-                            sE.store.pop(key)
-                            return str(vto)
-                        else:
-                            return
-                    ##vto = EnergiaLESSTHAN(vto, enerval, key, precVal)
-                    ##if vto == 'null':
-                    ##    return
-                elif eneropt == 'LE':
-                    # LESS OR EQUAL
-                    if not vto <= enerval:
-                        return
-                elif eneropt == 'GR':
-                    #vto = EnergiaGRATERTHAN(vto, enerval, key, precVal)
-                    #if vto == 'null':
-                    #    return
-                    if not vto > enerval:
-                        return
-                elif eneropt == 'GE':
-                    # GREATER OR EQUAL
-                    if not vto >= enerval:
-                        return 
-                else:
-                    if precVal != None:
-                        minmax = precVal.split('|')
-                        if (int(minmax[0]) <= vto):
-                            if (int(minmax[1]) >= vto):
-                                return 
-                            else:
-                                minmax[1] = str(vto)
-                                if DEBUG:
-                                    print "EnergiaLESSTHAN: new max %s" % (minmax[1]) 
-                        else:
-                            minmax[0] = str(vto)
-                            if DEBUG:
-                                print "EnergiaLESSTHAN: new min %s" % (minmax[0])
-                        sE.store[key] = str(minmax[0])+'|'+str(minmax[1])
-                    else:
-                        #MCFG.StoreEnergie[key] = str(vto)+'|'+str(vto)
-                        sE.store[key] = str(vto)+'|'+str(vto)   
-
-            # Controlla stato del canale
-            #status = ALLXML_FILE.find("channels/channel[@type='%s']").attrib['enabled'] % (channel)
+                
+                vto = PrepareValuesToSend(vto, trigger, eneropt, enerval)
+                if (vto is None) or (str(vto).strip()==""):  #stringa vuota
+                   return
              
             if MCFG.enabledChannel.get(channel):
                 # Inseriti valori dinamici nella stringa
@@ -184,7 +116,7 @@ def ControlloEventi(msgOpen, logging):
                 s_temp = data.split("|");
                 testoDaInviare = s_temp[0]
                 
-                #se temperatura preparo il testo da inviare 
+                #SE TEMP preparo il testo da inviare 
                 if trigger.startswith('TS'):                     
                     nomeSonda = str(nzo)
                     try:
@@ -204,7 +136,7 @@ def ControlloEventi(msgOpen, logging):
                         logging.info('Sonda [%s] non trovata' ) % (str(nzo))
                     if DEBUG == 1:
                         print 'TEMP sending: ' + testoDaInviare
-                #se energia preparo il testo da inviare
+                #SE ENERGIA preparo il testo da inviare
                 elif (trigger.startswith('TE4') or trigger.startswith('TE3')):
                     testoDaInviare = testoDaInviare + str(dat) + ' ' + str(vto)
                     if DEBUG == 1:
@@ -216,7 +148,7 @@ def ControlloEventi(msgOpen, logging):
                         print 'EN sending: ' + testoDaInviare
                 invioNotifiche(data, channel, trigger, testoDaInviare, logging)
             else:
-                logging.debug('Alert non gestito causa canale <%s> non abilitato!') % (channel)
+                logging.debug('Alert non gestito causa canale [%s] non abilitato!' % channel)
     except Exception, err:
         if DEBUG == 1:
             print 'Errore in f.ControlloEventi! [' + str(sys.exc_info()) + ']'
@@ -463,8 +395,8 @@ def EnergiaLESSTHAN(vto, enerval, key, precVal):
     else:
         if precVal != None:
             minmax = precVal.split('|')
-            if (int(minmax[0]) <= vto):
-                if (int(minmax[1]) >= vto):
+            if (float(minmax[0]) <= float(vto)):
+                if (float(minmax[1]) >= float(vto)):
                     return 'null'
                 else:
                     minmax[1] = str(vto)
@@ -491,8 +423,8 @@ def EnergiaGRATERTHAN(vto, enerval, key, precVal):
     else:
         if precVal != None:
             minmax = precVal.split('|')
-            if (int(minmax[0]) <= vto):
-                if (int(minmax[1]) >= vto):
+            if (float_int(minmax[0]) <= vto):
+                if (float_int(minmax[1]) >= vto):
                     return
                 else:
                     minmax[1] = str(vto)
@@ -504,11 +436,80 @@ def EnergiaGRATERTHAN(vto, enerval, key, precVal):
             sE.store[key] = str(vto)+'|'+str(vto)
     return str(vto)
 
-##########################
+
+def PrepareValuesToSend(vto, trigger, eneropt, enerval):
+#<!------ START ----------------------------------------------------------------------------------------------------->
+    key = trigger + '|' + eneropt+'|'+str(enerval)
+    #logging.debug('TE5: channel [' + channel + '] tempdta [' + tempdta + '] tempopt [' + tempopt + '] tempval [' + tempval + '] trigger [' + trigger + ']')
+    sE= StoreEnergie()
+    #precVal = MCFG.StoreEnergie.get(key)
+    precVal = sE.store.get(key)
+
+    if eneropt == 'EQ':
+        # EQUAL
+        if not vto == enerval:
+            return
+    elif eneropt == 'LS':
+        #if not vto < enerval:
+        #    #Esisteva una chiave--> cancello e segnalo che siamo usciti dall'alert
+        #    if precVal != None:
+        #        vto = precVal
+        #        sE.store.pop(key)
+        #        return str(vto)
+        #    else:
+        #        return
+        vto = EnergiaLESSTHAN(vto, enerval, key, precVal)
+        if vto == 'null':
+            return
+    elif eneropt == 'LE':
+        # LESS OR EQUAL
+        ##if not vto <= enerval:
+        ##    return
+        vto = EnergiaLESSTHAN(vto, enerval, key, precVal)
+        if vto == 'null':
+            return
+    elif eneropt == 'GR':
+        vto = EnergiaGRATERTHAN(vto, enerval, key, precVal)
+        if vto == 'null':
+            return
+        ##if not vto > enerval:
+        ##    return
+    elif eneropt == 'GE':
+        ## GREATER OR EQUAL
+        ##if not vto >= enerval:
+        ##    return
+        vto = EnergiaGRATERTHAN(vto, enerval, key, precVal)
+        if vto == 'null':
+            return
+    else:
+        if precVal != None:
+            minmax = precVal.split('|')
+            if (int(minmax[0]) <= vto):
+                if (int(minmax[1]) >= vto):
+                    return 
+                else:
+                    minmax[1] = str(vto)
+                    if DEBUG:
+                        print "EnergiaLESSTHAN: new max %s" % (minmax[1]) 
+            else:
+                minmax[0] = str(vto)
+                if DEBUG:
+                    print "EnergiaLESSTHAN: new min %s" % (minmax[0])
+            sE.store[key] = str(minmax[0])+'|'+str(minmax[1])
+        else:
+            #MCFG.StoreEnergie[key] = str(vto)+'|'+str(vto)
+            sE.store[key] = str(vto)+'|'+str(vto)   
+ 
+    return str(vto)
+#<!---- END --------------------------------------------------------------------------------------------------------------->
+
+
+
+####################################################################################################
 ##########################
 ######### SERVICE
 ##########################
-##########################
+####################################################################################################
 
 def pushover_service(pomsg):
     bOK = True
@@ -527,7 +528,6 @@ def pushover_service(pomsg):
     finally:
         return bOK
         
-
 
 def batch_service(batchdata):
     bOK = True
