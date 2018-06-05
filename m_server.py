@@ -37,12 +37,13 @@ def main():
     while (True):
         try:    
             # Instanziamento classe MyHome
+            print "Server Starting"
             mhobj = MyHome("127.0.0.1",mhgateway_port)
             # Connessione all'impianto MyHome...
             smon = mhobj.mh_rcv_connections()
             mhobj.mh_send_data(smon,ACK)
             if mhobj.mh_receive_data(smon) != MONITOR:
-                print "niente monitor? Esco"
+                print "Niente monitor? Esco"
                 exit
             mhobj.mh_send_data(smon,ACK)
             f = open("serverTest.p", "rb")
