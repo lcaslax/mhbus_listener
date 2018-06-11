@@ -123,7 +123,7 @@ def ControlloEventi(msgOpen, logging):
                         testoDaInviare = testoDaInviare.replace('{temp}', str(vt))  
                     except Exception, err:
                         if DEBUG == 1:
-                            print 'Non trovato temp da parsificare nel file config'
+                            print 'Non trovato {temp} da parsificare nel file config'
                     try:
                         #cfg_sonda = ALLXML_FILE.find("sondeTemp/sonda[@type='%s']") % (str(nzo))
                         cfg_sonda = MCFG.elencoSondeTemp.get(str(nzo))
@@ -132,7 +132,7 @@ def ControlloEventi(msgOpen, logging):
                         #testoDaInviare = str(s_temp[1]) + ' | Sonda ' + str(nomeSonda) + ' indica ' + str(vt) + ' gradi '
                     except Exception, err:
                         if DEBUG == 1:
-                            print 'Non trovato sondeTemp e sonda nel file config'
+                            print 'Non trovato sondeTemp e {sonda} nel file config'
                         logging.info('Sonda [%s] non trovata' ) % (str(nzo))
                     if DEBUG == 1:
                         print 'TEMP sending: ' + testoDaInviare
@@ -314,7 +314,7 @@ def invioNotifiche(data, channel, trigger, testoDaInviare, logging):
         if pushover_service(testoDaInviare) == True:
             logging.info('Inviato messaggio pushover a seguito di evento ' + trigger)
         else:
-            logging.warn('Errore invio messaggio pushover a seguito di evento ' + trigger)
+            logging.warn('Errore invio messaggio pushover a seguito di evento ' + trigger + "(" + testoDaInviare + ")")
     elif channel == 'SMS':
         # ***********************************************************
         # ** SMS channel (a GSM phone is required on RS-232)       **
@@ -353,7 +353,7 @@ def invioNotifiche(data, channel, trigger, testoDaInviare, logging):
         if opencmd_service(busdata[0]) == True:
             logging.info('Eseguito/i comando/i OPEN preimpostato/i a seguito di evento ' + trigger)
         else:
-            logging.warn('Errore esecuzione comando/i OPEN preimpostato/i a seguito di evento ' + trigger)
+            logging.warn('Errore esecuzione comando/i OPEN preimpostato/i a seguito di evento ' + trigger )
     elif channel == 'BAT':
         # ***********************************************************
         # ** Batch channel                                         **
@@ -378,7 +378,7 @@ def invioNotifiche(data, channel, trigger, testoDaInviare, logging):
         if DEBUG == 1:
             print 'Nessun canale conosciuto. NON spedito [' + testoDaInviare +']'
         
-        
+### @TODO Refectoring con EnergiaGRATERTHAN  
 def EnergiaLESSTHAN(vto, enerval, key, precVal):
     sE= StoreEnergie()
     if DEBUG:
