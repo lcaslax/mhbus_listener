@@ -2,7 +2,9 @@
 import xml.etree.ElementTree as ET
 
 CFGFILENAME = 'mhblconf.xml'  # Configuration file name
-ALLXML_FILE = ET.parse(CFGFILENAME)    
+ALLXML_FILE = ET.parse(CFGFILENAME)   
+
+fileTempTmp = []
 
 def init():
     #ALLXML_FILE.iterfind("alerts/alert[@trigger='%s']" % (trigger)):
@@ -55,6 +57,13 @@ def init():
     global mhgateway_ip, mhgateway_port
     mhgateway_ip = ALLXML_FILE.find("gateways/gateway[@priority='1']").attrib['address']
     mhgateway_port = ALLXML_FILE.find("gateways/gateway[@priority='1']").attrib['port']
+    
+    global writeTempTmpFile
+    sondeTemp = ALLXML_FILE.find("sondeTemp/TempTmpFile")
+    #sondeTemp = sondeTemp.attrib['TempTmpFile']
+    if sondeTemp is None:
+        writeTempTmpFile = False
+    
  
 class StoreEnergie(): 
     store = {}

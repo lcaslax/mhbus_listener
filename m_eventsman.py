@@ -178,7 +178,12 @@ def gestioneTermo(trigger):
         # Lettura ultimi dati registrati
         try:
             tedt = []
-            tedt = pickle.load(open("tempdata.p", "rb"))
+            #se richiesto scrive valori temporanei su file
+            if (MCFG.writeTempTmpFile):
+                tedt = pickle.load(open("tempdata.p", "rb"))
+            else:
+                tedt = MCFG.fileTempTmp
+           
             # Presenza di ultimo dato storicizzato. Confronta.
             if nzo == tedt[0] and vt == tedt[1]:
                 # Valori invariati dalla precedente lettura, no trigger!
@@ -187,7 +192,11 @@ def gestioneTermo(trigger):
             # Nessun dato storicizzato, scrivi quello appena letto.
             tedt.append(nzo)
             tedt.append(vt)
-            pickle.dump(tedt,open("tempdata.p", "wb"))
+            #se richiesto scrive valori temporanei su file
+            if (MCFG.writeTempTmpFile):
+                pickle.dump(tedt,open("tempdata.p", "wb"))
+            else:
+                MCFG.fileTempTmp = tedtM
             # OK trigger
             trigger = 'TSE' + str(nzo)
     elif trigger.split('*')[3] == '0':
@@ -204,7 +213,12 @@ def gestioneTermo(trigger):
         try:
             ###tidt = []
             i = 0
-            tidt = pickle.load(open("tempdata.p", "rb"))
+            #se richiesto scrive valori temporanei su file
+            if (MCFG.writeTempTmpFile):
+                tidt = pickle.load(open("tempdata.p", "rb"))
+            else:
+                tidt = MCFG.fileTempTmp
+            
             b_writeTemp = 1;
             for elem in tidt:
                 if i%2 == 0:
@@ -239,8 +253,11 @@ def gestioneTermo(trigger):
             tidt = []
             tidt.append(nzo)
             tidt.append(str(vt))
-            pickle.dump(tidt,open("tempdata.p", "wb"))
-            #writeTemFile(tidt)
+            #se richiesto scrive valori temporanei su file
+            if (MCFG.writeTempTmpFile):
+                pickle.dump(tidt,open("tempdata.p", "wb"))
+            else:
+                MCFG.fileTempTmp = tidt
             # OK trigger
             trigger = 'TSZ' + str(nzo)
             if DEBUG == 1:
@@ -674,7 +691,10 @@ def fixtemp(vt):
 def writeTemFile(tidt):
     if DEBUG == 1:
         print 'scrivo ' + str(tidt)
-    pickle.dump(tidt,open("tempdata.p", "wb"))
+    if (MCFG.writeTempTmpFile):
+        pickle.dump(tidt,open("tempdata.p", "wb"))
+    else:
+        MCFG.fileTempTmp = tidt
 
 def fixener(vto):
    # Adatta il formato di energia
