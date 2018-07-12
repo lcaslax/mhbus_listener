@@ -22,23 +22,30 @@
 # e-mail:
 
 
-import time
-import os, sys
-import platform
 import ConfigParser
 import httplib, urllib
-import cPickle as pickle
-import json as simplejson
-import xml.etree.ElementTree as ET
+import logging
+import os, sys
+import platform
+import string
+import sys
+import time
+import traceback
+
 import requests
-from cl_log import Log
+from requests.exceptions import ConnectionError
+
+import cPickle as pickle
 from cl_btbus import MyHome
 from cl_email import EmailSender
-from m_main import DEBUG
-from m_main import ALLXML_FILE
-import m_config as MCFG
-import string
+from cl_log import Log
+import json as simplejson
 from m_config import StoreEnergie
+import m_config as MCFG
+from m_main import ALLXML_FILE
+from m_main import DEBUG
+import xml.etree.ElementTree as ET
+
 
 #from m_main import statusChannel
 # Optionl module for GSM function.
@@ -361,7 +368,7 @@ def invioNotifiche(data, channel, trigger, testoDaInviare, logging):
         if email_service(emldata[0],'mhbus_listener alert',testoDaInviare) == True:
             logging.info('Inviata/e e-mail a ' + str(emldata[0]) +  ' a seguito di evento ' + trigger)
         else:
-            logging.warn('Errore invio e-mail a ' + str(emldata[0]) + ' a seguito di evento ' + trigger)
+            logging.warn('Errore invio e-mail a ' + str(emldata[0]) + ' a seguito di evento ' + trigger + "(" + testoDaInviare + ")")
     elif channel == 'BUS':
         # ***********************************************************
         # ** SCS-BUS channel                                       **
@@ -538,9 +545,16 @@ def pushover_service(pomsg):
             "user": MCFG.pov_pouk,
             "message": pomsg,
           }), { "Content-type": "application/x-www-form-urlencoded" })
-        conn.getresponse()
-        #conn.close() ?
+        conn.close()
+    except httplib.HTTPException as httpEx:
+        sErr = "Pushover_service [" + MCFG.pov_poaddr + "] HTTPException " + str(httpEx) + " StackTrace  [" + sys.exc_info() + "]"
+        print sErr
+        logging.error(sErr)
+        bOK = False
     except:
+        sErr = "Pushover_service [" + MCFG.pov_poaddr + "] StackTrace  [" + sys.exc_info() + "]"
+        print sErr
+        logging.error(sErr)
         bOK = False
     finally:
         return bOK
