@@ -446,17 +446,21 @@ def EnergiaGRATERTHAN(vto, enerval, key, precVal):
             vto = precVal
             sE.store.pop(key)
         else:
-            return
+            return 'null'
     else:
         if precVal != None:
             minmax = precVal.split('|')
             if (float_int(minmax[0]) <= vto):
                 if (float_int(minmax[1]) >= vto):
-                    return
+                    return 'null'
                 else:
+                    if DEBUG:
+                        print "EnergiaGRATERTHAN: new max %s" % (minmax[1])
                     minmax[1] = str(vto)
             else:
                 minmax[0] = str(vto)
+                if DEBUG:
+                    print "EnergiaGRATERTHAN: new min %s" % (minmax[0])
             sE.store[key] = str(minmax[0])+'|'+str(minmax[1])
         else:
             #MCFG.StoreEnergie[key] = str(vto)+'|'+str(vto)
