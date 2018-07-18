@@ -438,6 +438,8 @@ def EnergiaLESSTHAN(vto, enerval, key, precVal):
 
 def EnergiaGRATERTHAN(vto, enerval, key, precVal):
     sE= StoreEnergie()
+    if DEBUG:
+        print "EnergiaGRATERTHAN: vto %s enerval %s key %s precVal %s" % (str(vto), enerval, key, precVal)
     if not vto > enerval:
         #Esisteva una chiave--> cancello e segnalo che siamo usciti dall'alert
         if precVal != None:

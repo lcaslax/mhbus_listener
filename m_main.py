@@ -167,16 +167,16 @@ def main():
                                 logging.warn(str(frames) + ' - ' + str(smon))
                     else:
                         # KO, non e' stato possibile attivare la modalita' MONITOR, impossibile proseguire.
-                        logging.fatal('IL GATEWAY %s HA RIFIUTATO LA MODALITA'' MONITOR. ARRIVEDERCI!') % (mhgateway_ip)
+                        logging.fatal('IL GATEWAY ' + str(mhgateway_ip) + ' HA RIFIUTATO LA MODALITA'' MONITOR. ARRIVEDERCI!')
                         ExitApp()
                 else:
                     # KO, il gateway non ha risposto nel tempo previsto, impossibile proseguire.
-                    logging.error('IL GATEWAY %s NON HA RISPOSTO NEL TEMPO PREVISTO. ARRIVEDERCI!') % (mhgateway_ip) 
+                    logging.error('IL GATEWAY ' + str(mhgateway_ip) + ' NON HA RISPOSTO NEL TEMPO PREVISTO. ARRIVEDERCI!') 
                     ExitApp()
             else:
                 # KO, il gateway non e' stato trovato, impossibile proseguire.
                 #print 'NESSUN GATEWAY BTICINO TROVATO ALL''INDIRIZZO ' + mhgateway_ip + '! ARRIVEDERCI!'
-                logging.fatal('NESSUN GATEWAY BTICINO TROVATO ALL''INDIRIZZO %s! ARRIVEDERCI!') % (mhgateway_ip)
+                logging.fatal('NESSUN GATEWAY BTICINO TROVATO ALL''INDIRIZZO ' + str(mhgateway_ip) + '! ARRIVEDERCI!')
                 ExitApp()
         else:
             # KO, errore nella lettura di parametri indispensabili, impossibile proseguire.
@@ -185,8 +185,8 @@ def main():
     except Exception, err:
         if DEBUG == 1:
             print 'Errore in f.main! [' + str(sys.stderr.write('ERROR: %s\n' % str(err))) + ']'
-            logging.fatal('Errore in f.main! [' + str(sys.stderr.write('ERROR: %s\n' % str(err))) + ']')
-
+        logging.fatal('Errore in f.main! [' + str(sys.stderr.write('ERROR: %s\n' % str(err))) + ']')
+        logging.fatal(sys.exc_info())
 
 def ExitApp():
     try:
