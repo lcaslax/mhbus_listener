@@ -42,7 +42,7 @@ from cl_log import Log
 import json as simplejson
 from m_config import StoreEnergie
 import m_config as MCFG
-from m_main import ALLXML_FILE
+from m_main import ALLXML_FILE, COMMANDS, ACK
 from m_main import DEBUG
 import xml.etree.ElementTree as ET
 
@@ -76,24 +76,24 @@ def ControlloEventi(msgOpen, logging):
     trigger = msgOpen
     eneropt = string
     enerval = float()
+    rawValue = 0
     try:
         # Se CHI=4 estrazione dati di temperatura.
         if trigger.startswith('*#4*'):
             trigger, nzo, vt = gestioneTermo(trigger)
         elif trigger.startswith('*#18*'):
             trigger, nto, vto, dat = gestioneEnergia(trigger)
-            
+
         # Cerca trigger evento legato alla frame open ricevuta.
-        
         #for elem in ALLXML_FILE.find("alerts/alert[@trigger='" + trigger + "']"):
         #s_trigger = "alerts/alert[@trigger='%s']" % (trigger)
         #for elem in ALLXML_FILE.iterfind(s_trigger):
-        
+
         elem = MCFG.alertElement.get(trigger)
         if elem != None:
             # Estrai canale
             channel = elem.attrib['channel']
-            
+
             # Se trigger di TEMPERATURA estrai parametri e verificali
             if trigger.startswith('TS'):
                 tempdta = elem.attrib['data'].split('|')
@@ -104,7 +104,9 @@ def ControlloEventi(msgOpen, logging):
                 vt = PrepareValuesToSend(vt, trigger, tempopt, tempval)
                 if (vt is None) or (str(vt).strip()==""):  #stringa vuota
                    return
-                    
+                else:
+                   rawValue = vt
+
             #- TE5x energia istantanea (x e' il toroide)
             #- TE4x energia del giorno precedente
             #- TE3x energia mese precedente        
@@ -116,44 +118,56 @@ def ControlloEventi(msgOpen, logging):
                 vto = PrepareValuesToSend(vto, trigger, eneropt, enerval)
                 if (vto is None) or (str(vto).strip()==""):  #stringa vuota
                    return
-             
+                else:
+                    rawValue = vto
+
+            ### SPEDIZIONE IN CORSO
             if MCFG.enabledChannel.get(channel):
                 # Inseriti valori dinamici nella stringa
                 data = elem.attrib['data']
-                s_temp = data.split("|");
-                testoDaInviare = s_temp[0]
+                s_tmp = data.split("|");
+                testoDaInviare = s_tmp[0]
                 
-                #SE TEMP preparo il testo da inviare 
-                if trigger.startswith('TS'):                     
-                    nomeSonda = str(nzo)
-                    try:
-                        testoDaInviare = testoDaInviare.replace('{temp}', str(vt))  
-                    except Exception, err:
+                #SE TEMPERATURA preparo il testo da inviare
+                if trigger.startswith('TS'):
+                    #ccc
+                    #if s_temp[1] == 'ALL':
+                    #    testoDaInviare = str(vt)
+                    #else:
+                    #    nomeSonda = str(nzo)
+                        try:
+                            testoDaInviare = testoDaInviare.replace('{temp}', str(vt))
+                        except Exception, err:
+                            if DEBUG == 1:
+                                print 'Non trovato {temp} da parsificare nel file config'
+                        try:
+                            cfg_sonda = MCFG.elencoSondeTemp.get(str(nzo))
+                            nomeSonda = cfg_sonda.attrib['data']
+                            testoDaInviare = testoDaInviare.replace('{sonda}', str(nomeSonda))
+                        except Exception, err:
+                            if DEBUG == 1:
+                                print 'Non trovato sondeTemp e {sonda} nel file config'
+                            logging.info('Sonda [%s] non trovata' ) % (str(nzo))
                         if DEBUG == 1:
-                            print 'Non trovato {temp} da parsificare nel file config'
-                    try:
-                        #cfg_sonda = ALLXML_FILE.find("sondeTemp/sonda[@type='%s']") % (str(nzo))
-                        cfg_sonda = MCFG.elencoSondeTemp.get(str(nzo))
-                        nomeSonda = cfg_sonda.attrib['data']
-                        testoDaInviare = testoDaInviare.replace('{sonda}', str(nomeSonda))     
-                        #testoDaInviare = str(s_temp[1]) + ' | Sonda ' + str(nomeSonda) + ' indica ' + str(vt) + ' gradi '
-                    except Exception, err:
-                        if DEBUG == 1:
-                            print 'Non trovato sondeTemp e {sonda} nel file config'
-                        logging.info('Sonda [%s] non trovata' ) % (str(nzo))
-                    if DEBUG == 1:
-                        print 'TEMP sending: ' + testoDaInviare
+                            print 'TEMP sending: ' + testoDaInviare
                 #SE ENERGIA preparo il testo da inviare
                 elif (trigger.startswith('TE4') or trigger.startswith('TE3')):
-                    testoDaInviare = testoDaInviare + str(dat) + ' ' + str(vto)
+                    testoDaInviare = testoDaInviare + ' ' + str(dat) 
+                    testoDaInviare = testoDaInviare.replace('{consumo}', str(vto))
                     if DEBUG == 1:
-                        print 'EN sending: ' + testoDaInviare 
+                        print 'EN TE3 o TE4 sending: ' + testoDaInviare
                 # Trovato evento, verifica come reagire.
                 elif (trigger.startswith('TE5') or trigger.startswith('TE2')):
-                    testoDaInviare = testoDaInviare + str(vto)
+                    testoDaInviare = testoDaInviare.replace('{consumo}', str(vto))
                     if DEBUG == 1:
-                        print 'EN sending: ' + testoDaInviare
-                invioNotifiche(data, channel, trigger, testoDaInviare, logging)
+                        print 'EN TE2 o TE5 sending: ' + testoDaInviare
+                ########################
+                #### INVIO NOTIFICHE ###
+                invioNotifiche(data, channel, trigger, testoDaInviare, rawValue, logging)
+                ########################
+                ########################
+                if DEBUG == 1:
+                    print 'Invio notifica effettuata'
             else:
                 logging.debug('Alert non gestito causa canale [%s] non abilitato!' % channel)
     except Exception, err:
@@ -203,7 +217,7 @@ def gestioneTermo(trigger):
             if (MCFG.writeTempTmpFile):
                 pickle.dump(tedt,open("tempdata.p", "wb"))
             else:
-                MCFG.fileTempTmp = tedtM
+                MCFG.fileTempTmp = tedt
             # OK trigger
             trigger = 'TSE' + str(nzo)
     elif trigger.split('*')[3] == '0':
@@ -329,7 +343,7 @@ def gestioneEnergia(trigger):
     
 
 #invio notifiche
-def invioNotifiche(data, channel, trigger, testoDaInviare, logging):
+def invioNotifiche(data, channel, trigger, testoDaInviare, rawValue, logging):
     if channel == 'POV':
         # ***********************************************************
         # ** Pushover channel                                      **
@@ -362,13 +376,19 @@ def invioNotifiche(data, channel, trigger, testoDaInviare, logging):
         # ** e-mail channel                                        **
         # ***********************************************************
         emldata = data.split('|')
+        destinatario = emldata[3] 
+        #elem.attrib['mailto']
         if DEBUG == 1:
             print 'Tentativo invio email [' + str(emldata[0]) + '] con testo ' + testoDaInviare 
         
-        if email_service(emldata[0],'mhbus_listener alert',testoDaInviare) == True:
-            logging.info('Inviata/e e-mail a ' + str(emldata[0]) +  ' a seguito di evento ' + trigger)
+        #ccc CANCELLARE log
+        logging.info(str(data));
+        logging.info(str(emldata));
+
+        if email_service(destinatario,'mhbus_listener alert',testoDaInviare) == True:
+            logging.info('Inviata/e e-mail a [' + str(destinatario) +  '] a seguito di evento ' + trigger)
         else:
-            logging.warn('Errore invio e-mail a ' + str(emldata[0]) + ' a seguito di evento ' + trigger + "(" + testoDaInviare + ")")
+            logging.warn('Errore invio e-mail a [' + str(destinatario) + '] a seguito di evento ' + trigger + "(" + testoDaInviare + ")")
     elif channel == 'BUS':
         # ***********************************************************
         # ** SCS-BUS channel                                       **
@@ -396,12 +416,22 @@ def invioNotifiche(data, channel, trigger, testoDaInviare, logging):
            logging.debug('Inviato Ifttt a ' + iftdata[0] + ' a seguito di evento ' + trigger)
         else:
            logging.warn('Errore invio Ifttt a seguito di evento ' + trigger)
+    elif channel == 'IFXDB':
+        # ***********************************************************
+        # ** INVIO ALERT SU DB INFLUX                              **
+        # ***********************************************************
+		logging.debug('IFXDB')
+		if ifdxdb_service(testoDaInviare, rawValue) == True:
+			#if DEBUG == 1:
+			#	print "ifxdbdata splittato: [%s] [%s] [%s]" %(str(ifxdbdata[0], str(ifxdbdata[1], str(ifxdbdata[2]))
+			logging.debug('Inserito ifxdb a ' + testoDaInviare + ' a seguito di evento ' + trigger)
+
     else:
         # Error
-        logging.warn('Canale di notifica non riconosciuto! [' + action + ']')
+        logging.warn('Canale di notifica non riconosciuto! [' + channel + ']')
         if DEBUG == 1:
-            print 'Nessun canale conosciuto. NON spedito [' + testoDaInviare +']'
-        
+            print 'Nessun canale conosciuto. NON spedito [' + testoDaInviare +'] trigger ' +trigger 
+
 ### @TODO Refectoring con EnergiaGRATERTHAN  
 def EnergiaLESSTHAN(vto, enerval, key, precVal):
     sE= StoreEnergie()
@@ -419,21 +449,27 @@ def EnergiaLESSTHAN(vto, enerval, key, precVal):
     else:
         if precVal != None:
             minmax = precVal.split('|')
+            if DEBUG:
+                print "EnergiaLESSTHAN - minmax - split"
             if (float(minmax[0]) <= float(vto)):
                 if (float(minmax[1]) >= float(vto)):
                     return 'null'
                 else:
                     minmax[1] = str(vto)
                     if DEBUG:
+                        print "EnergiaLESSTHAN - minmax"
                         print "EnergiaLESSTHAN: new max %s" % (minmax[1]) 
             else:
                 minmax[0] = str(vto)
                 if DEBUG:
+                    print "EnergiaLESSTHAN - minmaxi 2"
                     print "EnergiaLESSTHAN: new min %s" % (minmax[0])
             sE.store[key] = str(minmax[0])+'|'+str(minmax[1])
         else:
             #MCFG.StoreEnergie[key] = str(vto)+'|'+str(vto)
             sE.store[key] = str(vto)+'|'+str(vto)
+        if DEBUG:
+            print "EnergiaLESSTHAN: USCITA" 
     return str(vto)
 
 def EnergiaGRATERTHAN(vto, enerval, key, precVal):
@@ -450,21 +486,35 @@ def EnergiaGRATERTHAN(vto, enerval, key, precVal):
     else:
         if precVal != None:
             minmax = precVal.split('|')
-            if (float_int(minmax[0]) <= vto):
-                if (float_int(minmax[1]) >= vto):
+            if DEBUG:
+                print "EnergiaGRATERTHAN - minmax - split"
+                #print "EnergiaGRATERTHAN - minmax %s" % (minmax[0])
+                #print "EnergiaGRATERTHAN - minmax %s" % float(minmax[0])
+                #print "EnergiaGRATERTHAN - minmax %s" % type(minmax[0])
+            if (float(minmax[0]) <= vto):
+                if DEBUG:
+                    print "EnergiaGRATERTHAN - minmax[0]"
+                if (float(minmax[1]) >= vto):
+                    if DEBUG:
+                        print "EnergiaGRATERTHAN - minmanx[1] --> null"
                     return 'null'
                 else:
-                    if DEBUG:
-                        print "EnergiaGRATERTHAN: new max %s" % (minmax[1])
                     minmax[1] = str(vto)
+                    if DEBUG:
+                        print "EnergiaGRATERTHAN - minmax"
+                        #print "EnergiaGRATERTHAN: new max %s" % (minmax[1])
             else:
                 minmax[0] = str(vto)
                 if DEBUG:
-                    print "EnergiaGRATERTHAN: new min %s" % (minmax[0])
+                    print "EnergiaGRATERTHAN - minmax 2"
+                    #print "EnergiaGRATERTHAN: new min %s" % (minmax[0])
             sE.store[key] = str(minmax[0])+'|'+str(minmax[1])
         else:
             #MCFG.StoreEnergie[key] = str(vto)+'|'+str(vto)
             sE.store[key] = str(vto)+'|'+str(vto)
+        
+        if DEBUG:
+            print "EnergiaGRATERTHAN: USCITA" 
     return str(vto)
 
 
@@ -473,13 +523,16 @@ def PrepareValuesToSend(vto, trigger, eneropt, enerval):
     key = trigger + '|' + eneropt+'|'+str(enerval)
     #logging.debug('TE5: channel [' + channel + '] tempdta [' + tempdta + '] tempopt [' + tempopt + '] tempval [' + tempval + '] trigger [' + trigger + ']')
     sE= StoreEnergie()
-    #precVal = MCFG.StoreEnergie.get(key)
     precVal = sE.store.get(key)
-
-    if eneropt == 'EQ':
-        # EQUAL
-        if not vto == enerval:
-            return
+    
+    if eneropt == 'ALL':
+      if DEBUG ==1:
+        print 'PrepareValuesToSend ALL [%s]' %(vto)
+        return vto
+    elif eneropt == 'EQ':
+      # EQUAL
+      if not vto == enerval:
+        return
     elif eneropt == 'LS':
         #if not vto < enerval:
         #    #Esisteva una chiave--> cancello e segnalo che siamo usciti dall'alert
@@ -498,7 +551,7 @@ def PrepareValuesToSend(vto, trigger, eneropt, enerval):
         ##    return
         vto = EnergiaLESSTHAN(vto, enerval, key, precVal)
         if vto == 'null':
-            return
+          return
     elif eneropt == 'GR':
         vto = EnergiaGRATERTHAN(vto, enerval, key, precVal)
         if vto == 'null':
@@ -529,8 +582,7 @@ def PrepareValuesToSend(vto, trigger, eneropt, enerval):
             sE.store[key] = str(minmax[0])+'|'+str(minmax[1])
         else:
             #MCFG.StoreEnergie[key] = str(vto)+'|'+str(vto)
-            sE.store[key] = str(vto)+'|'+str(vto)   
- 
+            sE.store[key] = str(vto)+'|'+str(vto)
     return str(vto)
 #<!---- END --------------------------------------------------------------------------------------------------------------->
 
@@ -646,14 +698,16 @@ def twitter_service(twtdest,twttext):
 def email_service(emldest,emlobj,emltext):
     bOK = True
     try:
-        mailobj = EmailSender(em_smtpsrv,em_smtpport,em_smtpauth,em_smtpuser,em_smtppsw,em_smtptls,em_sender)
+        # mailobj = EmailSender(em_smtpsrv,em_smtpport,em_smtpauth,em_smtpuser,em_smtppsw,em_smtptls,em_sender)
+        mailobj = EmailSender(MCFG.em_smtpsrv,MCFG.em_smtpport,MCFG.em_smtpauth,MCFG.em_smtpuser,MCFG.em_smtppsw,MCFG.em_smtptls,MCFG.em_sender)
         if not mailobj.send_email(emldest,emlobj,emltext) == True:
             bOK = False
+            logging.warn('Errore in invio email! [' +str(emldest) + str(emlobj) + str(emltext) + str(sys.exc_info()) + ']')
     except Exception, err:
         bOK = False
         logging.warn('Errore in invio email! [' + str(sys.exc_info()) + ']')
-        if DEBUG == 1:
-            print 'Errore in invio email! [' + str(sys.exc_info()) + ']'
+        #if DEBUG == 1:
+        #    print 'Errore in invio email! [' + str(sys.exc_info()) + ']'
         
     finally:
         return bOK
@@ -692,7 +746,41 @@ def opencmd_service(opencmd):
     finally:
         return bOK
 
+def ifdxdb_service(luogo, consumo):
+	bOK = True
+	try:
+		# EXAMPLE: 
+		# curl -XPOST http://localhost:8086/write?db=mydb --data-binary "weather,location=us-midwest temperature=82 1465839830100400200"
+		#
+		
+		#TODO renderla costante
+		ifxdbAdd = ALLXML_FILE.find("channels/channel[@type='IFXDB']").attrib['address']
+		if DEBUG == 1:
+			print 'ifdxdb_service url [%s]' %(str(ifxdbAdd))
 
+		#TODO rendere il db configurabile
+		params = (
+    		('db', 'home'),
+		)
+		
+		secondsSinceEpoch = int(time.time()*1000000000)
+		
+		data = 'kw,location=%s value=%s %s' %(luogo, consumo, secondsSinceEpoch)
+		response = requests.post(ifxdbAdd, params=params, data=data)
+		
+		if DEBUG == 1:
+			print 'ifdxdb_service data: %s'%(data)
+			print 'ifdxdb_service response: %s' %(str(response.text))
+			#print 'ifdxdb_service END'
+	except Exception, err:
+		bOK = False
+		if DEBUG == 1:
+			print sys.stderr.write('ifdxdb_service ERROR: %s\n' % str(err))
+	finally:
+		return bOK   
+		
+#####################################################################
+#####################################################################
 def fixtemp(vt):
     # Adatta il formato di temperatura
     # Controllo segno temperatura
@@ -729,12 +817,12 @@ def ifttt_service(trigger,iftext):
     bOK = True
     try:
         if DEBUG == 1:
-            print 'IFT_address: ' + IFT_address
-        url = ift_address.format(e=trigger,k=ift_ckey)
+            print 'IFT_address: ' + MCFG.IFT_address
+        url = MCFG.ift_address.format(e=trigger,k=MCFG.ift_ckey)
         
-        logging.debug('IFT Preparazione= trigger: ' + trigger + ' ckey ' + ift_ckey + ' url ' + url)
+        logging.debug('IFT Preparazione= trigger: ' + trigger + ' ckey ' + MCFG.ift_ckey + ' url ' + url)
         if DEBUG == 1:
-            print 'IFT Preparazione= trigger: ' + trigger + ' ckey ' + ift_ckey + ' url ' + url
+            print 'IFT Preparazione= trigger: ' + trigger + ' ckey ' + MCFG.ift_ckey + ' url ' + url
         payload = {'value1': iftext}
         return requests.post(url, data=payload)
     except:

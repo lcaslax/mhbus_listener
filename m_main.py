@@ -196,7 +196,7 @@ def ExitApp():
         # Exit
         if not logging.warn('DISCONNESSO DAL GATEWAY. ARRIVEDERCI!'):
             print 'DISCONNESSO DAL GATEWAY. ARRIVEDERCI!'
-        pushover_service('mhbus_listener ' + __version__ + ' closed!')
+        EvMan.pushover_service('mhbus_listener ' + __version__ + ' closed!')
         sys.exit()
 
 

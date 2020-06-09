@@ -19,13 +19,13 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email.mime.text import MIMEText
 from email import Encoders
-
+#from m_main import DEBUG
 
 # S T A R T  C L A S S  'emailsender'
 
 class EmailSender:
 
-    DEBUG = 0
+    DEBUG = 1
 
     def __init__(self,smtpsrv,smtpport,smtpauth,smtpuser,smtppsw,smtptls,sender):
         self._smtpsrv = smtpsrv
@@ -38,6 +38,8 @@ class EmailSender:
 
 
     def send_email(self,email_to,email_obj,email_msg):
+        ##@TODO Da mettere a posto. Inserire log error o warn
+        DEBUG = 1
         # Invia una e-mail
         bOK = True
         send_date = time.strftime("%d %b %Y %H:%M:%S", time.localtime(time.time()))
