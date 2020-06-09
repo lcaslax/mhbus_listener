@@ -61,7 +61,6 @@ try:
 except ImportError:
     twt_module_available = False
 
-
 # Tunable parameters
 CFGFILENAME = 'mhblconf.xml'  # Configuration file name
 
@@ -70,7 +69,6 @@ tidt = []
 ########################
 ### CONTROLLO EVENTI ###
 ########################
-
 def ControlloEventi(msgOpen, logging):
     # GESTIONE EVENTI E AZIONI #
     trigger = msgOpen
@@ -152,7 +150,7 @@ def ControlloEventi(msgOpen, logging):
                             print 'TEMP sending: ' + testoDaInviare
                 #SE ENERGIA preparo il testo da inviare
                 elif (trigger.startswith('TE4') or trigger.startswith('TE3')):
-                    testoDaInviare = testoDaInviare + ' ' + str(dat) 
+                    testoDaInviare = testoDaInviare + ' ' + str(dat)
                     testoDaInviare = testoDaInviare.replace('{consumo}', str(vto))
                     if DEBUG == 1:
                         print 'EN TE3 o TE4 sending: ' + testoDaInviare
@@ -288,7 +286,6 @@ def gestioneTermo(trigger):
         None
     return trigger, nzo, vt
 
-
 #Routine per la gestione dell'energia
 def gestioneEnergia(trigger):
     nto = 0
@@ -339,10 +336,11 @@ def gestioneEnergia(trigger):
         None
         # Lettura canale
         #channel = elem.attrib['channel']
-    return trigger, nto, vto, dat   
-    
+    return trigger, nto, vto, dat
 
+################
 #invio notifiche
+################
 def invioNotifiche(data, channel, trigger, testoDaInviare, rawValue, logging):
     if channel == 'POV':
         # ***********************************************************
@@ -420,17 +418,19 @@ def invioNotifiche(data, channel, trigger, testoDaInviare, rawValue, logging):
         # ***********************************************************
         # ** INVIO ALERT SU DB INFLUX                              **
         # ***********************************************************
-		logging.debug('IFXDB')
-		if ifdxdb_service(testoDaInviare, rawValue) == True:
-			#if DEBUG == 1:
-			#	print "ifxdbdata splittato: [%s] [%s] [%s]" %(str(ifxdbdata[0], str(ifxdbdata[1], str(ifxdbdata[2]))
-			logging.debug('Inserito ifxdb a ' + testoDaInviare + ' a seguito di evento ' + trigger)
+        logging.debug('IFXDB')
+        tabella= ALLXML_FILE.find("alerts/alert[@channel='IFXDB'][@trigger='"+trigger+"']").attrib['table']
+        if ifdxdb_service(testoDaInviare, tabella, rawValue) == True:
+            #if DEBUG == 1:
+            #	print "ifxdbdata splittato: [%s] [%s] [%s]" %(str(ifxdbdata[0], str(ifxdbdata[1], str(ifxdbdata[2]))
+            logging.debug('Inserito ifxdb a ' + testoDaInviare + ' a seguito di evento ' + trigger)
 
     else:
         # Error
         logging.warn('Canale di notifica non riconosciuto! [' + channel + ']')
         if DEBUG == 1:
             print 'Nessun canale conosciuto. NON spedito [' + testoDaInviare +'] trigger ' +trigger 
+
 
 ### @TODO Refectoring con EnergiaGRATERTHAN  
 def EnergiaLESSTHAN(vto, enerval, key, precVal):
@@ -471,7 +471,6 @@ def EnergiaLESSTHAN(vto, enerval, key, precVal):
         if DEBUG:
             print "EnergiaLESSTHAN: USCITA" 
     return str(vto)
-
 def EnergiaGRATERTHAN(vto, enerval, key, precVal):
     sE= StoreEnergie()
     if DEBUG:
@@ -516,8 +515,6 @@ def EnergiaGRATERTHAN(vto, enerval, key, precVal):
         if DEBUG:
             print "EnergiaGRATERTHAN: USCITA" 
     return str(vto)
-
-
 def PrepareValuesToSend(vto, trigger, eneropt, enerval):
 #<!------ START ----------------------------------------------------------------------------------------------------->
     key = trigger + '|' + eneropt+'|'+str(enerval)
@@ -617,7 +614,6 @@ def pushover_service(pomsg):
         bOK = False
     finally:
         return bOK
-        
 
 def batch_service(batchdata):
     bOK = True
@@ -637,7 +633,6 @@ def batch_service(batchdata):
         bOK = False
     finally:
         return bOK
-
 
 def sms_service(nums,smstext):
     bOK = True
@@ -660,7 +655,6 @@ def sms_service(nums,smstext):
             print sys.stderr.write('ERROR: %s\n' % str(err))
     finally:
         return bOK
-
 
 def twitter_service(twtdest,twttext):
     bOK = True
@@ -694,7 +688,6 @@ def twitter_service(twtdest,twttext):
     finally:
         return bOK
 
-
 def email_service(emldest,emlobj,emltext):
     bOK = True
     try:
@@ -711,7 +704,6 @@ def email_service(emldest,emlobj,emltext):
         
     finally:
         return bOK
-
 
 def opencmd_service(opencmd):
     bOK = True
@@ -746,38 +738,34 @@ def opencmd_service(opencmd):
     finally:
         return bOK
 
-def ifdxdb_service(luogo, consumo):
-	bOK = True
-	try:
-		# EXAMPLE: 
-		# curl -XPOST http://localhost:8086/write?db=mydb --data-binary "weather,location=us-midwest temperature=82 1465839830100400200"
-		#
-		
-		#TODO renderla costante
-		ifxdbAdd = ALLXML_FILE.find("channels/channel[@type='IFXDB']").attrib['address']
-		if DEBUG == 1:
-			print 'ifdxdb_service url [%s]' %(str(ifxdbAdd))
+def ifdxdb_service(luogo, tabella, consumo):
+    bOK = True
+    try:
+        # EXAMPLE:
+        # curl -XPOST http://localhost:8086/write?db=mydb --data-binary "weather,location=us-midwest temperature=82 1465839830100400200"
+        #
+        if DEBUG == 1:
+            print 'ifdxdb_service url [%s]' %(str(MCFG.ifxdbAdd))
 
-		#TODO rendere il db configurabile
-		params = (
-    		('db', 'home'),
-		)
-		
-		secondsSinceEpoch = int(time.time()*1000000000)
-		
-		data = 'kw,location=%s value=%s %s' %(luogo, consumo, secondsSinceEpoch)
-		response = requests.post(ifxdbAdd, params=params, data=data)
-		
-		if DEBUG == 1:
-			print 'ifdxdb_service data: %s'%(data)
-			print 'ifdxdb_service response: %s' %(str(response.text))
-			#print 'ifdxdb_service END'
-	except Exception, err:
-		bOK = False
-		if DEBUG == 1:
-			print sys.stderr.write('ifdxdb_service ERROR: %s\n' % str(err))
-	finally:
-		return bOK   
+        #TODO rendere il db configurabile
+        params = (
+            ('db', 'home'),
+        )
+        secondsSinceEpoch = int(time.time()*1000000000)
+
+        data = '%s,location=%s value=%s %s' %(tabella, luogo, consumo, secondsSinceEpoch)
+        response = requests.post(MCFG.ifxdbAdd, params=params, data=data)
+
+        if DEBUG == 1:
+            print 'ifdxdb_service data: %s'%(data)
+            print 'ifdxdb_service response: %s' %(str(response.text))
+            #print 'ifdxdb_service END'
+    except Exception, err:
+        bOK = False
+        if DEBUG == 1:
+            print sys.stderr.write('ifdxdb_service ERROR: %s\n' % str(err))
+    finally:
+        return bOK
 		
 #####################################################################
 #####################################################################
@@ -795,7 +783,6 @@ def fixtemp(vt):
         vt = 999
     # Mostra temperatura
     return vt/10
-
 
 def writeTemFile(tidt):
     if DEBUG == 1:
